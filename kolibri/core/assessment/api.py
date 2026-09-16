@@ -297,11 +297,10 @@ class CreateAssessmentRecord(ViewSet):
                             'date_activated': date_activated
                         }
 
-                        instance_list.append({
-                            **test,
-                            'id': instance.id,
-                            'content_id': test['id'],
-                        })
+                        merged_test = dict(test)
+                        merged_test['id'] = instance.id
+                        merged_test['content_id'] = test['id']
+                        instance_list.append(merged_test)
                         final_response_list.append(final_dict)
 
                 if len(instance_list) != AssessmentConstant.DEFAULT: 
@@ -332,7 +331,9 @@ class ExamAssessmentStartViewSet(ViewSet):
             if available_id:
                 assessment_instance = models.ExamAssessment.objects.get(id=first_assessment_map)
                 assessment_instance.previous_question_sources = assessment_instance.current_question_sources
-                assessment_instance.__dict__.update({**update_dict, 'attempt_count': AssessmentConstant.ATTEMPT_COUNT})
+                merged_update_dict = dict(update_dict)
+                merged_update_dict['attempt_count'] = AssessmentConstant.ATTEMPT_COUNT
+                assessment_instance.__dict__.update(merged_update_dict)
                 assessment_instance.save()
             else:
                 return Response({'message': 'Invalid Assessment ID'})
