@@ -78,9 +78,10 @@ class EdulutionAsset(webpack_hooks.WebpackBundleHook):
         }
 
 
-@register_hook
-class MyDownloadsAsset(webpack_hooks.WebpackBundleHook):
-    bundle_id = "my_downloads_app"
+# Disabled along with the my_downloads_app bundle in buildConfig.js
+# @register_hook
+# class MyDownloadsAsset(webpack_hooks.WebpackBundleHook):
+#     bundle_id = "my_downloads_app"
 
 
 @register_hook
@@ -169,6 +170,7 @@ class NetworkBroadcastForSoUDHook(NetworkLocationBroadcastHook, DiscoveryHookMix
                 self._begin_request_soud_sync(network_location)
 
 
-@register_hook
-class MyDownloadsNavAction(NavigationHook):
-    bundle_id = "my_downloads_side_nav"
+# Disabled along with the my_downloads_side_nav bundle in buildConfig.js
+# @register_hook
+# class MyDownloadsNavAction(NavigationHook):
+#     bundle_id = "my_downloads_side_nav"
