@@ -22,7 +22,9 @@ class DefaultThemeHook(theme_hook.ThemeHook):
         random_image = random.randint(1, 31)
 
         # Generate the background image filename based on the random number between 1 and 31
-        background_image = static(f"assets/default_theme/background{random_image}.jpg")
+        background_image = static(
+            "assets/default_theme/background{}.jpg".format(random_image)
+        )
 
         return {
             "signIn": {
