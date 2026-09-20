@@ -14,12 +14,6 @@ import { PageNames } from '../constants';
 
 import { useLessons } from '../composables/useLessons';
 
-import LessonsRootPage from '../views/plan/LessonsRootPage';
-import LessonSummaryPage from '../views/plan/LessonSummaryPage';
-import LessonResourceSelectionPage from '../views/plan/LessonResourceSelectionPage';
-import PlanLessonSelectionContentPreview from '../views/plan/PlanLessonSelectionContentPreview';
-import LessonEditDetailsPage from '../views/plan/LessonEditDetailsPage';
-import LessonCreationPage from '../views/plan/LessonCreationPage';
 import { classIdParamRequiredGuard } from './utils';
 
 const CLASS = '/:classId?/plan';
@@ -40,7 +34,7 @@ export default [
   {
     name: LessonsPageNames.PLAN_LESSONS_ROOT,
     path: path(CLASS, ALL_LESSONS),
-    component: LessonsRootPage,
+    component: () => import(/* webpackChunkName: "LessonsRootPage" */ '../views/plan/LessonsRootPage'),
     handler(toRoute, fromRoute, next) {
       if (classIdParamRequiredGuard(toRoute, PageNames.PLAN_PAGE, next)) {
         return;
@@ -54,13 +48,16 @@ export default [
   {
     name: LessonsPageNames.LESSON_CREATION_ROOT,
     path: path(CLASS, ALL_LESSONS, '/new'),
-    component: LessonCreationPage,
+    component: () => import(/* webpackChunkName: "LessonCreationPage" */ '../views/plan/LessonCreationPage'),
   },
   {
     name: LessonsPageNames.SUMMARY,
     path: path(CLASS, LESSON),
-    component: LessonSummaryPage,
-    handler(toRoute) {
+    component: () => import(/* webpackChunkName: "LessonSummaryPage" */ '../views/plan/LessonSummaryPage'),
+    handler(toRoute, fromRoute, next) {
+      if (classIdParamRequiredGuard(toRoute, PageNames.PLAN_PAGE, next)) {
+        return;
+      }
       return showLessonSummaryPage(store, toRoute.params);
     },
     meta: {
@@ -68,14 +65,14 @@ export default [
     },
   },
   {
-    name: LessonEditDetailsPage.name,
+    name: 'LessonEditDetailsPage',
     path: path(CLASS, LESSON, '/edit'),
-    component: LessonEditDetailsPage,
+    component: () => import(/* webpackChunkName: "LessonEditDetailsPage" */ '../views/plan/LessonEditDetailsPage'),
   },
   {
     name: LessonsPageNames.SELECTION_ROOT,
     path: path(CLASS, LESSON, SELECTION),
-    component: LessonResourceSelectionPage,
+    component: () => import(/* webpackChunkName: "LessonResourceSelectionPage" */ '../views/plan/LessonResourceSelectionPage'),
     handler(toRoute) {
       showLessonResourceSelectionRootPage(store, toRoute.params);
     },
@@ -83,7 +80,7 @@ export default [
   {
     name: LessonsPageNames.SELECTION,
     path: path(CLASS, LESSON, SELECTION, TOPIC),
-    component: LessonResourceSelectionPage,
+    component: () => import(/* webpackChunkName: "LessonResourceSelectionPage" */ '../views/plan/LessonResourceSelectionPage'),
     handler(toRoute, fromRoute) {
       // HACK if last page was LessonContentPreviewPage, then we need to make sure
       // to immediately autosave just in case a change was made there. This gets
@@ -106,7 +103,7 @@ export default [
   {
     name: LessonsPageNames.SELECTION_SEARCH,
     path: path(CLASS, LESSON, SELECTION, SEARCH),
-    component: LessonResourceSelectionPage,
+    component: () => import(/* webpackChunkName: "LessonResourceSelectionPage" */ '../views/plan/LessonResourceSelectionPage'),
     handler(toRoute) {
       showLessonResourceSearchPage(store, toRoute.params, toRoute.query);
     },
@@ -114,7 +111,7 @@ export default [
   {
     name: LessonsPageNames.LESSON_SELECTION_BOOKMARKS,
     path: path(CLASS, LESSON, SELECTION, TOPIC),
-    component: LessonResourceSelectionPage,
+    component: () => import(/* webpackChunkName: "LessonResourceSelectionPage" */ '../views/plan/LessonResourceSelectionPage'),
     handler(toRoute, fromRoute) {
       let preHandlerPromise;
       if (fromRoute.name === LessonsPageNames.SELECTION_CONTENT_PREVIEW) {
@@ -133,7 +130,7 @@ export default [
   {
     name: LessonsPageNames.LESSON_SELECTION_BOOKMARKS_MAIN,
     path: path(CLASS, LESSON, SELECTION),
-    component: LessonResourceSelectionPage,
+    component: () => import(/* webpackChunkName: "LessonResourceSelectionPage" */ '../views/plan/LessonResourceSelectionPage'),
     handler(toRoute) {
       showLessonResourceBookmarksMain(store, toRoute.params, toRoute.query);
     },
@@ -141,7 +138,7 @@ export default [
   {
     name: LessonsPageNames.SELECTION_CONTENT_PREVIEW,
     path: path(CLASS, LESSON, SELECTION, PREVIEW),
-    component: PlanLessonSelectionContentPreview,
+    component: () => import(/* webpackChunkName: "PlanLessonSelectionContentPreview" */ '../views/plan/PlanLessonSelectionContentPreview'),
     handler(toRoute) {
       showLessonSelectionContentPreview(store, toRoute.params, toRoute.query);
     },
@@ -149,7 +146,7 @@ export default [
   {
     name: LessonsPageNames.RESOURCE_CONTENT_PREVIEW,
     path: path(CLASS, LESSON, '/resource', PREVIEW),
-    component: PlanLessonSelectionContentPreview,
+    component: () => import(/* webpackChunkName: "PlanLessonSelectionContentPreview" */ '../views/plan/PlanLessonSelectionContentPreview'),
     props(data) {
       let backRoute;
       // If linked from the Reports section, go back there

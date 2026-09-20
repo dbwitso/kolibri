@@ -1,9 +1,6 @@
 import store from 'kolibri.coreVue.vuex.store';
 import { PageNames } from '../constants';
 import { useGroups } from '../composables/useGroups';
-import GroupsPage from '../views/plan/GroupsPage';
-import GroupMembersPage from '../views/plan/GroupMembersPage';
-import GroupEnrollPage from '../views/plan/GroupEnrollPage';
 import planLessonsRoutes from './planLessonsRoutes';
 import planExamRoutes from './planExamRoutes';
 import planAssessmentRoutes from './planAssessmentRoutes';
@@ -20,9 +17,9 @@ export default [
     redirect: '/:classId?/plan/lessons',
   },
   {
-    name: GroupsPage.name,
+    name: 'GroupsPage',
     path: '/:classId/plan/groups',
-    component: GroupsPage,
+    component: () => import(/* webpackChunkName: "GroupsPage" */ '../views/plan/GroupsPage'),
     handler(to) {
       showGroupsPage(store, to.params.classId);
     },
@@ -31,9 +28,9 @@ export default [
     },
   },
   {
-    name: GroupMembersPage.name,
+    name: 'GroupMembersPage',
     path: '/:classId/plan/groups/:groupId',
-    component: GroupMembersPage,
+    component: () => import(/* webpackChunkName: "GroupMembersPage" */ '../views/plan/GroupMembersPage'),
     handler(to) {
       showGroupsPage(store, to.params.classId);
     },
@@ -42,9 +39,9 @@ export default [
     },
   },
   {
-    name: GroupEnrollPage.name,
+    name: 'GroupEnrollPage',
     path: '/:classId/plan/groups/:groupId/enroll',
-    component: GroupEnrollPage,
+    component: () => import(/* webpackChunkName: "GroupEnrollPage" */ '../views/plan/GroupEnrollPage'),
     handler(to) {
       showGroupsPage(store, to.params.classId);
     },

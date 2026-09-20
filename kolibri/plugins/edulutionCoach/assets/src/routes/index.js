@@ -1,17 +1,15 @@
 import store from 'kolibri.coreVue.vuex.store';
 import router from 'kolibri.coreVue.router';
-import AllFacilitiesPage from '../views/AllFacilitiesPage';
-import CoachClassListPage from '../views/CoachClassListPage';
-import ClassLearnersListPage from '../views/ClassLearnersListPage';
-import HomePage from '../views/home/HomePage';
-import CoachPrompts from '../views/CoachPrompts';
-import HomeActivityPage from '../views/home/HomeActivityPage';
-import StatusTestPage from '../views/common/status/StatusTestPage';
 import { ClassesPageNames } from '../../../../edulution/assets/src/constants';
 import { PageNames } from '../constants';
 import reportRoutes from './reportRoutes';
 import planRoutes from './planRoutes';
 import { classIdParamRequiredGuard } from './utils';
+
+// Every route below has an explicit `name:` rather than relying on Vue
+// Router's fallback of reading `component.name` (see
+// kolibri/core/assets/src/router.js's initRoutes), which only works for a
+// synchronously-available component object, not a lazy () => import(...).
 
 export default [
   ...planRoutes,
@@ -19,15 +17,16 @@ export default [
   {
     name: 'AllFacilitiesPage',
     path: '/facilities/:subtopicName?',
-    component: AllFacilitiesPage,
+    component: () => import(/* webpackChunkName: "AllFacilitiesPage" */ '../views/AllFacilitiesPage'),
     props: true,
     handler() {
       store.dispatch('notLoading');
     },
   },
   {
+    name: 'CoachClassListPage',
     path: '/:facility_id?/classes/:subtopicName?',
-    component: CoachClassListPage,
+    component: () => import(/* webpackChunkName: "CoachClassListPage" */ '../views/CoachClassListPage'),
     props: true,
     handler(toRoute) {
       // loading state is handled locally
@@ -41,7 +40,7 @@ export default [
             // If no class list page, redirect to the first (and only) class and
             // to the originally-selected subtopic, if available
             router.replace({
-              name: toRoute.params.subtopicName || HomePage.name,
+              name: toRoute.params.subtopicName || PageNames.HOME_PAGE,
               params: { classId: store.state.classList[0].id },
             });
             return;
@@ -57,9 +56,9 @@ export default [
   {
     name: PageNames.HOME_PAGE,
     path: '/:classId?/home',
-    component: HomePage,
+    component: () => import(/* webpackChunkName: "HomePage" */ '../views/home/HomePage'),
     handler: (toRoute, fromRoute, next) => {
-      if (classIdParamRequiredGuard(toRoute, HomePage.name, next)) {
+      if (classIdParamRequiredGuard(toRoute, PageNames.HOME_PAGE, next)) {
         return;
       }
       store.dispatch('notLoading');
@@ -69,8 +68,9 @@ export default [
     },
   },
   {
+    name: 'HomeActivityPage',
     path: '/:classId/home/activity',
-    component: HomeActivityPage,
+    component: () => import(/* webpackChunkName: "HomeActivityPage" */ '../views/home/HomeActivityPage'),
     handler() {
       store.dispatch('notLoading');
     },
@@ -81,21 +81,23 @@ export default [
   {
     name: ClassesPageNames.CLASS_LEARNERS_LIST_VIEWER,
     path: '/:classId/learners',
-    component: ClassLearnersListPage,
+    component: () => import(/* webpackChunkName: "ClassLearnersListPage" */ '../views/ClassLearnersListPage'),
     handler() {
       store.dispatch('notLoading');
     },
   },
   {
+    name: 'StatusTestPage',
     path: '/about/statuses',
-    component: StatusTestPage,
+    component: () => import(/* webpackChunkName: "StatusTestPage" */ '../views/common/status/StatusTestPage'),
     handler() {
       store.dispatch('notLoading');
     },
   },
   {
+    name: 'CoachPrompts',
     path: '/coach-prompts',
-    component: CoachPrompts,
+    component: () => import(/* webpackChunkName: "CoachPrompts" */ '../views/CoachPrompts'),
     handler() {
       store.dispatch('notLoading');
     },

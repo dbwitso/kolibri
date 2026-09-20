@@ -12,21 +12,13 @@ import {
   showPracticeQuizCreationTopicPage,
   showPracticeQuizCreationPreviewPage,
 } from '../modules/examCreation/handlers';
-import CreatePracticeQuizPage from '../views/plan/CreateExamPage/CreatePracticeQuizPage.vue';
-import CreateExamPage from '../views/plan/CreateExamPage';
-import CreateExamPreview from '../views/plan/CreateExamPage/CreateExamPreview.vue';
-import PlanQuizPreviewPage from '../views/plan/PlanQuizPreviewPage';
-import CoachExamsPage from '../views/plan/CoachExamsPage';
 import { showExamsPage } from '../modules/examsRoot/handlers';
-import QuizSummaryPage from '../views/plan/QuizSummaryPage';
-import QuizEditDetailsPage from '../views/plan/QuizEditDetailsPage';
-import PlanPracticeQuizPreviewPage from '../views/plan/CreateExamPage/PlanPracticeQuizPreviewPage';
 
 export default [
   {
     name: PageNames.EXAMS,
     path: '/:classId/plan/quizzes',
-    component: CoachExamsPage,
+    component: () => import(/* webpackChunkName: "CoachExamsPage" */ '../views/plan/CoachExamsPage'),
     handler(toRoute) {
       showExamsPage(store, toRoute.params.classId);
     },
@@ -37,7 +29,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_ROOT,
     path: '/:classId/plan/quizzes/new/',
-    component: CreateExamPage,
+    component: () => import(/* webpackChunkName: "CreateExamPage" */ '../views/plan/CreateExamPage'),
     handler: toRoute => {
       showExamCreationRootPage(store, toRoute.params);
     },
@@ -45,7 +37,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_PRACTICE_QUIZ,
     path: '/:classId/plan/quizzes/new/practice_quiz',
-    component: CreatePracticeQuizPage,
+    component: () => import(/* webpackChunkName: "CreatePracticeQuizPage" */ '../views/plan/CreateExamPage/CreatePracticeQuizPage.vue'),
     handler: toRoute => {
       showPracticeQuizCreationRootPage(store, toRoute.params);
     },
@@ -53,7 +45,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_SELECT_PRACTICE_QUIZ_TOPIC,
     path: '/:classId/plan/quizzes/new/practice_quiz/topic/:topicId',
-    component: CreatePracticeQuizPage,
+    component: () => import(/* webpackChunkName: "CreatePracticeQuizPage" */ '../views/plan/CreateExamPage/CreatePracticeQuizPage.vue'),
     handler: toRoute => {
       showPracticeQuizCreationTopicPage(store, toRoute.params);
     },
@@ -61,7 +53,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_TOPIC,
     path: '/:classId/plan/quizzes/new/topic/:topicId',
-    component: CreateExamPage,
+    component: () => import(/* webpackChunkName: "CreateExamPage" */ '../views/plan/CreateExamPage'),
     handler: toRoute => {
       showExamCreationTopicPage(store, toRoute.params);
     },
@@ -69,7 +61,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_BOOKMARKS,
     path: '/:classId/plan/quizzes/new/bookmark/:topicId',
-    component: CreateExamPage,
+    component: () => import(/* webpackChunkName: "CreateExamPage" */ '../views/plan/CreateExamPage'),
     handler: toRoute => {
       showExamCreationBookmarksPage(store, toRoute.params);
     },
@@ -77,7 +69,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_BOOKMARKS_MAIN,
     path: '/:classId/plan/quizzes/new/bookmarks',
-    component: CreateExamPage,
+    component: () => import(/* webpackChunkName: "CreateExamPage" */ '../views/plan/CreateExamPage'),
     handler: toRoute => {
       showExamCreationAllBookmarks(store, toRoute.params);
     },
@@ -85,7 +77,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_SEARCH,
     path: '/:classId/plan/quizzes/new/search/:searchTerm',
-    component: CreateExamPage,
+    component: () => import(/* webpackChunkName: "CreateExamPage" */ '../views/plan/CreateExamPage'),
     handler: toRoute => {
       showExamCreationSearchPage(store, toRoute.params, toRoute.query);
     },
@@ -93,7 +85,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_QUESTION_SELECTION,
     path: '/:classId/plan/quizzes/new/finalize',
-    component: CreateExamPreview,
+    component: () => import(/* webpackChunkName: "CreateExamPreview" */ '../views/plan/CreateExamPage/CreateExamPreview.vue'),
     handler: (toRoute, fromRoute) => {
       showExamCreationQuestionSelectionPage(store, toRoute, fromRoute);
     },
@@ -101,7 +93,7 @@ export default [
   {
     name: PageNames.EXAM_CREATION_PRACTICE_QUIZ_PREVIEW,
     path: '/:classId/plan/quizzes/new/practice_quiz/preview/',
-    component: PlanPracticeQuizPreviewPage,
+    component: () => import(/* webpackChunkName: "PlanPracticeQuizPreviewPage" */ '../views/plan/CreateExamPage/PlanPracticeQuizPreviewPage'),
     handler: toRoute => {
       showPracticeQuizCreationPreviewPage(store, toRoute.params);
     },
@@ -109,22 +101,22 @@ export default [
   {
     name: PageNames.EXAM_CREATION_PREVIEW,
     path: '/:classId/plan/quizzes/new/preview/',
-    component: PlanQuizPreviewPage,
+    component: () => import(/* webpackChunkName: "PlanQuizPreviewPage" */ '../views/plan/PlanQuizPreviewPage'),
     handler: (toRoute, fromRoute) => {
       showExamCreationPreviewPage(store, toRoute.params, fromRoute);
     },
   },
   {
-    name: QuizSummaryPage.name,
+    name: 'QuizSummaryPage',
     path: '/:classId/plan/quizzes/:quizId',
-    component: QuizSummaryPage,
+    component: () => import(/* webpackChunkName: "QuizSummaryPage" */ '../views/plan/QuizSummaryPage'),
     meta: {
       titleParts: ['QUIZ_NAME', 'quizzesLabel', 'CLASS_NAME'],
     },
   },
   {
-    name: QuizEditDetailsPage.name,
+    name: 'QuizEditDetailsPage',
     path: '/:classId/plan/quizzes/:quizId/edit',
-    component: QuizEditDetailsPage,
+    component: () => import(/* webpackChunkName: "QuizEditDetailsPage" */ '../views/plan/QuizEditDetailsPage'),
   },
 ];
