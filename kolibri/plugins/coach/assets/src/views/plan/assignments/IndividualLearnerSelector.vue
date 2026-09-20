@@ -141,24 +141,14 @@
       ...mapState('classSummary', ['groupMap']),
       allLearners() {
         // If we get a class ID different that that in Vuex state,
-        // then we're going to need to fetch that class's learners
+        // then we need that class's learners - see the targetClassId
+        // watcher below, which triggers the fetch. This stays a pure
+        // read of already-fetched/in-flight state, no side effects.
         if (this.targetClassId != this.classId) {
-          // This is init to null so we've not fetched it yet.
-          if (!this.learnersFromOtherClass) {
-            // Avoid refetching
-            if (this.fetchingOutside) {
-              return [];
-            }
-            // Fetch it and return empty for now...
-            this.fetchOutsideClassroom();
-            return [];
-          } else {
-            return this.learnersFromOtherClass;
-          }
-        } else {
-          // Falls into the default vuex state.
-          return this.learners;
+          return this.learnersFromOtherClass || [];
         }
+        // Falls into the default vuex state.
+        return this.learners;
       },
       currentGroupMap() {
         return this.groupMapFromOtherClass || this.groupMap;
@@ -186,6 +176,16 @@
       },
       itemsPerPage() {
         return DEFAULT_ITEMS_PER_PAGE;
+      },
+    },
+    watch: {
+      targetClassId: {
+        immediate: true,
+        handler(newVal) {
+          if (newVal != null && newVal != this.classId && !this.fetchingOutside) {
+            this.fetchOutsideClassroom();
+          }
+        },
       },
     },
     methods: {
