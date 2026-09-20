@@ -15,8 +15,12 @@ export function setLessonSummaryState(store, params) {
   const loadRequirements = [
     store.dispatch('lessonSummary/updateCurrentLesson', lessonId),
     LearnerGroupResource.fetchCollection({ getParams: { parent: classId } }),
-    // Need state.classList to be set for copying to work
-    store.dispatch('setClassList', store.state.classSummary.facility_id),
+    // Need state.classList to be set for copying to work. Skip if classSummary
+    // hasn't loaded yet (e.g. direct navigation) - setClassList throws on a
+    // missing facilityId, which would otherwise abort this whole page load.
+    store.state.classSummary.facility_id
+      ? store.dispatch('setClassList', store.state.classSummary.facility_id)
+      : Promise.resolve(),
   ];
 
   return Promise.all(loadRequirements)

@@ -12,8 +12,12 @@ export function showExamsPage(store, classId) {
       getParams: { collection: classId },
       force: true,
     }),
-    // state.classList needs to be set for Copy Exam modal to work
-    store.dispatch('setClassList', store.state.classSummary.facility_id),
+    // state.classList needs to be set for Copy Exam modal to work. Skip if
+    // classSummary hasn't loaded yet (e.g. direct navigation) - setClassList
+    // throws on a missing facilityId, which would otherwise abort this load.
+    store.state.classSummary.facility_id
+      ? store.dispatch('setClassList', store.state.classSummary.facility_id)
+      : Promise.resolve(),
   ];
 
   const shouldResolve = samePageCheckGenerator(store);
