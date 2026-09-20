@@ -180,7 +180,7 @@ class FacilityDataset(FacilityDataSyncableModel):
     learner_can_login_with_no_password = models.BooleanField(default=False)
     show_download_button_in_learn = models.BooleanField(default=True)
     learner_can_view_lessons = models.BooleanField(default=False)
-    learner_can_view_quizzes = models.BooleanField(default=False)
+    learner_can_view_quizzes = models.BooleanField(default=True)
     learner_can_search_content = models.BooleanField(default=False)
     learner_can_view_recent_content = models.BooleanField(default=False)
     learner_can_view_other_libraries = models.BooleanField(default=False)
