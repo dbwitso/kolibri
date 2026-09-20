@@ -18,6 +18,14 @@
           :collectionTitle="getResourceClassName(resource)"
           :locked="resource.locked"
         />
+        <QuizCard
+          v-for="(quiz, idx) in resumableClassesQuizzes"
+          :key="`quiz-${idx}`"
+          :quiz="quiz"
+          :to="getClassQuizLink(quiz)"
+          :collectionTitle="getQuizClassName(quiz)"
+          showThumbnail
+        />
       </template>
       <template v-else>
         <ResourceCard
@@ -56,6 +64,7 @@
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
   import { get } from '@vueuse/core';
   import CardGrid from '../cards/CardGrid';
+  import QuizCard from '../cards/QuizCard';
   import ResourceCard from '../cards/ResourceCard';
   import CopiesModal from '../CopiesModal';
   import useLearnerResources from '../../composables/useLearnerResources';
@@ -68,6 +77,7 @@
     name: 'ContinueLearning',
     components: {
       CardGrid,
+      QuizCard,
       ResourceCard,
       CopiesModal,
     },

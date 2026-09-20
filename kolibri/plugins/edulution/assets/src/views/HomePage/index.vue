@@ -31,6 +31,14 @@
       >
         {{ $tr('noLessonsVisibleMessage') }}
       </p>
+      <AssignedQuizzesCards
+        v-if="hasActiveClassesQuizzes"
+        class="section"
+        :quizzes="activeClassesQuizzes"
+        displayClassName
+        recent
+        data-test="recentQuizzes"
+      />
       <AssessmentCards
         v-if="assessments.length" 
         class="section"
@@ -72,6 +80,7 @@ import useLearnerResources, {
 import { setContentNodeProgress } from '../../composables/useContentNodeProgress';
 import { PageNames } from '../../constants';
 import AssignedLessonsCards from '../classes/AssignedLessonsCards';
+import AssignedQuizzesCards from '../classes/AssignedQuizzesCards';
 import YourClasses from '../YourClasses';
 import LearnAppBarPage from '../LearnAppBarPage';
 import AssessmentCards from '../classes/AssessmentCards';
@@ -89,6 +98,7 @@ export default {
   name: 'HomePage',
   components: {
     AssignedLessonsCards,
+    AssignedQuizzesCards,
     YourClasses,
     ContinueLearning,
     ExploreChannels,
@@ -117,7 +127,9 @@ export default {
     } = useLearnerResources();
 
     const continueLearningFromClasses = computed(
-      () => get(resumableClassesResources).length > 0
+      () =>
+        (get(isUserLoggedIn) && get(resumableClassesQuizzes).length > 0) ||
+        get(resumableClassesResources).length > 0
     );
     const continueLearningOnYourOwn = computed(
       () =>
