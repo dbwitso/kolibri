@@ -44,6 +44,7 @@ from kolibri.core.content.api import OptionalPageNumberPagination
 from kolibri.core.decorators import query_params_required
 from kolibri.core.exams.models import Exam
 from kolibri.core.lessons.models import Lesson
+from kolibri.core.lessons.models import LearnerResourceLock
 from kolibri.core.assessment.models import ExamAssessment
 from kolibri.core.logger.constants import interaction_types
 from kolibri.core.logger.constants.exercise_attempts import MAPPING
@@ -265,7 +266,7 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
         ).exists():
             raise PermissionDenied("User does not have access to this assessment_id")
 
-    def _check_lesson_permissions(self, user, lesson_id):
+    def _check_lesson_permissions(self, user, lesson_id, node_id):
         if user.is_anonymous:
             raise PermissionDenied("Cannot access a lesson if not logged in")
         if not Lesson.objects.filter(
@@ -275,6 +276,29 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
             id=lesson_id,
         ).exists():
             raise ValidationError("Invalid lesson_id")
+        # Assignment/membership was already validated via the join-based
+        # exists() check above; look the Lesson up directly (not through
+        # the same join) to avoid MultipleObjectsReturned when a lesson is
+        # assigned to more than one collection the user is a member of.
+        lesson = Lesson.objects.get(id=lesson_id)
+        locked_resource = next(
+            (
+                resource
+                for resource in lesson.resources
+                if resource.get("contentnode_id") == node_id
+                and resource.get("locked")
+            ),
+            None,
+        )
+        if locked_resource is not None:
+            raise PermissionDenied("This resource has been locked by your coach")
+        if LearnerResourceLock.objects.filter(
+            lesson_id=lesson_id, user=user, contentnode_id=node_id
+        ).exists():
+            raise PermissionDenied(
+                "You have already completed this resource. Ask your coach to unlock it "
+                "if you need to access it again."
+            )
 
     def _get_context(self, user, validated_data):
         node_id = validated_data.get("node_id")
@@ -290,7 +314,7 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
             kind = validated_data.get("kind")
             context["node_id"] = node_id
             if lesson_id:
-                self._check_lesson_permissions(user, lesson_id)
+                self._check_lesson_permissions(user, lesson_id, node_id)
                 context["lesson_id"] = lesson_id
         elif quiz_id is not None:
             self._check_quiz_permissions(user, quiz_id)
@@ -365,6 +389,11 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
             "extra_fields": summarylog.extra_fields,
             "time_spent": summarylog.time_spent,
             "complete": summarylog.progress >= 1,
+            # The summarylog's start_timestamp is set once, at first creation, and left
+            # untouched on subsequent visits/reloads - a stable, server-authoritative
+            # anchor a client can use to compute a countdown deadline (e.g. for a
+            # timed assessment) without trusting the client's own clock.
+            "start_timestamp": summarylog.start_timestamp,
         }
         if mastery_model:
             assessment_output, mastery_level = self._start_assessment_session(
@@ -861,6 +890,12 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
             summarylog.completion_timestamp = end_timestamp
             update_fields += ("completion_timestamp",)
             self._process_completed_notification(summarylog, context)
+            if "lesson_id" in context and "node_id" in context:
+                LearnerResourceLock.objects.get_or_create(
+                    lesson_id=context["lesson_id"],
+                    user=user,
+                    contentnode_id=context["node_id"],
+                )
         if "extra_fields" in validated_data:
             update_fields += ("extra_fields",)
             summarylog.extra_fields = validated_data["extra_fields"]
