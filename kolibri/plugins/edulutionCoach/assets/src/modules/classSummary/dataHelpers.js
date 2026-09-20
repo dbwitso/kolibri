@@ -53,7 +53,6 @@ export default {
    */
   getLearnersForGroups(state) {
     return function(groupIds) {
-      console.log({ groupIds })
       if (!Array.isArray(groupIds)) {
         throw new Error('getLearnersForGroups: invalid parameter(s)');
       }
@@ -93,10 +92,10 @@ export default {
   },
   getRecipientNameForAssessment(state) {
     return function(exam) {
-      const adHocLearners = exam.assignments.map(
-        learnerId => state.learnerMap[learnerId].name
-      );
-      return adHocLearners
+      return (exam.assignments || [])
+        .map(learnerId => state.learnerMap[learnerId])
+        .filter(Boolean)
+        .map(learner => learner.name);
     };
   },
   /*
