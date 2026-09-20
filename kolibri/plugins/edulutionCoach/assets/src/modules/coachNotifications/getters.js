@@ -6,7 +6,7 @@ import { ContentNodeKinds } from 'kolibri.coreVue.vuex.constants';
 import { NotificationObjects, NotificationEvents } from '../../constants/notificationsConstants';
 import { CollectionTypes } from '../../constants/lessonsConstants';
 
-const { LESSON, RESOURCE, QUIZ } = NotificationObjects;
+const { LESSON, RESOURCE, QUIZ, ASSESSMENT } = NotificationObjects;
 
 export function allNotifications(state, getters, rootState, rootGetters) {
   const classSummary = rootGetters['classSummary/notificationModuleData'];
@@ -48,6 +48,11 @@ export function allNotifications(state, getters, rootState, rootGetters) {
       if (!lessonMatch) {
         return null;
       }
+    } else if (object === ASSESSMENT) {
+      const assessmentMatch = classSummary.assessments[notification.assessment_id];
+      if (!assessmentMatch) {
+        return null;
+      }
     }
     const groups = notification.assignment_collections
       .map(idx => classSummary.learnerGroups[idx])
@@ -80,6 +85,12 @@ export function allNotifications(state, getters, rootState, rootGetters) {
         name: classSummary.exams[notification.quiz_id].title,
         type: ContentNodeKinds.EXAM,
         id: notification.quiz_id,
+      };
+    } else if (object === ASSESSMENT) {
+      assignment = {
+        name: classSummary.assessments[notification.assessment_id].title,
+        type: 'assessment',
+        id: notification.assessment_id,
       };
     } else {
       assignment = {
@@ -133,6 +144,9 @@ export function summarizedNotifications(state, getters, rootState, rootGetters) 
       }
       if (n.object === QUIZ) {
         return `${n.object}_${n.quiz_id}`;
+      }
+      if (n.object === ASSESSMENT) {
+        return `${n.object}_${n.assessment_id}`;
       }
     }
   );

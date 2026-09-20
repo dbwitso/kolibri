@@ -404,6 +404,7 @@ export default {
         learnerGroups: state.groupMap,
         lessons: state.lessonMap,
         exams: state.examMap,
+        assessments: state.assessmentMap,
         classId: state.id,
         className: state.name,
         contentNodes: state.contentNodeMap,

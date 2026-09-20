@@ -31,7 +31,7 @@
             <div class="context2">
               <Recipients
                 :groupNames="item.learner"
-                :hasAssignments="item.learner.length"
+                :hasAssignments="Boolean(item.learner.length)"
               />
             </div>
           </KFixedGridItem>
