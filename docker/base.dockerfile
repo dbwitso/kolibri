@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:jammy
 
 ENV NODE_VERSION=16.20.0
 
@@ -11,9 +11,14 @@ RUN apt-get update && \
     git \
     git-lfs \
     psmisc \
-    python2.7 \
-    python-pip \
-    python-sphinx
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-sphinx \
+    python-is-python3
 
 # add yarn ppa
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
@@ -32,8 +37,10 @@ RUN git lfs install
 COPY . /kolibri
 
 # do the time-consuming base install commands
+# Note: requirements/build.txt is intentionally not installed here - it is only
+# used by build_whl.dockerfile, and its setuptools<41 pin (needed for an old
+# pex build quirk) breaks Python 3.9+ metadata builds for other packages.
 RUN cd /kolibri \
-    && pip install -r requirements/dev.txt \
-    && pip install -r requirements/build.txt \
-    && pip install -r requirements/test.txt \
+    && pip3 install --timeout 120 --retries 10 -r requirements/dev.txt \
+    && pip3 install --timeout 120 --retries 10 -r requirements/test.txt \
     && yarn install --network-timeout 100000
