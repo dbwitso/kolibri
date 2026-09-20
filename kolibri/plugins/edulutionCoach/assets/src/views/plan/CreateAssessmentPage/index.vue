@@ -24,6 +24,7 @@
 
         <KGridItem :layout12="{ span: 5 }">
           <KSelect
+            v-if="!assignToWholeClass"
             v-model="selectedLearner"
             :label="$tr('learnerLabel')"
             :options="learnerOptions"
@@ -31,6 +32,12 @@
           />
         </KGridItem>
       </KGrid>
+
+      <KCheckbox
+        :checked="assignToWholeClass"
+        :label="$tr('assignToWholeClassLabel')"
+        @change="assignToWholeClass = $event"
+      />
 
       <h2 v-if="toggleTable === 'SHOW_CHANNEL'">{{ $tr('chooseChannel') }}</h2>
 
@@ -138,6 +145,7 @@
 
 <script>
 
+  import uniqBy from 'lodash/uniqBy';
   import { mapState } from 'vuex';
   
   import { AssessmentResource, ContentNodeResource } from 'kolibri.resources';
@@ -172,6 +180,7 @@
       return {
         assessmentTitle: '',
         selectedLearner: {},
+        assignToWholeClass: false,
         selectedContent: '',
         toggleTable:'SHOW_CHANNEL',
         tableData:[],
@@ -196,7 +205,7 @@
         if (!this.assessmentTitle) {
           return true;
         }
-        if (!Object.keys(this.selectedLearner).length) {
+        if (!this.assignToWholeClass && !Object.keys(this.selectedLearner).length) {
           return true;
         }
         if (!this.selectedContent) {
@@ -211,12 +220,18 @@
     methods: {
       async prepareAssessments() {
         const assessments = [];
-        const contentNodes = await ContentNodeResource.fetchCollection({
-          getParams: {
-            parent: this.selectedContent,
-            kind_in: [ContentNodeKinds.TOPIC]
-          }
-        })
+        // The content API can return the same topic more than once (e.g. a
+        // topic linked under more than one parent) - dedupe by id so the
+        // table below never renders two rows with the same :key.
+        const contentNodes = uniqBy(
+          await ContentNodeResource.fetchCollection({
+            getParams: {
+              parent: this.selectedContent,
+              kind_in: [ContentNodeKinds.TOPIC]
+            }
+          }),
+          'id'
+        )
 
         const descendantsNodes = await ContentNodeResource.fetchDescendantsAssessments(
           contentNodes.map(c => c.id)
@@ -288,25 +303,42 @@
         }
       }
 
-        const data = {
-          collection: this.classId,
-          title: this.assessmentTitle,
-          date_archived: null,
-          date_activated: null,
-          channel_id: this.selectedContent,
-          learner_id: this.selectedLearner.value,
-          assessments: [...this.tableData.reverse()],
-          creator_id: this.userId,
-        };
+        const learnerIds = this.assignToWholeClass
+          ? this.getLearnersForGroups([])
+          : [this.selectedLearner.value];
 
-        try {
-          const result = await AssessmentResource.saveModel({ data })
-          console.log({ result })
-          this.$router.push({ name: PageNames.ASSESSMENTS, params: { classId: this.classId } });
-        } catch (error) {
-          if (error?.response?.data?.error) {
-            this.$store.dispatch('createSnackbar', error.response.data.error);
+        const assessments = [...this.tableData.reverse()];
+
+        let successCount = 0;
+        const failures = [];
+
+        for (const learnerId of learnerIds) {
+          const data = {
+            collection: this.classId,
+            title: this.assessmentTitle,
+            date_archived: null,
+            date_activated: null,
+            channel_id: this.selectedContent,
+            learner_id: learnerId,
+            assessments,
+            creator_id: this.userId,
+          };
+
+          try {
+            await AssessmentResource.saveModel({ data });
+            successCount += 1;
+          } catch (error) {
+            const learner = this.learners.find(l => l.id === learnerId);
+            const reason = error?.response?.data?.error || error.message;
+            failures.push(`${learner ? learner.name : learnerId}: ${reason}`);
           }
+        }
+
+        if (failures.length) {
+          this.$store.dispatch('createSnackbar', failures.join('; '));
+        }
+        if (successCount > 0) {
+          this.$router.push({ name: PageNames.ASSESSMENTS, params: { classId: this.classId } });
         }
       },
         // @public
@@ -323,6 +355,10 @@
       learnerLabel: {
         message: 'Learner',
         context: '',
+      },
+      assignToWholeClassLabel: {
+        message: 'Assign to entire class',
+        context: 'Checkbox letting a coach assign this assessment to every learner in the class instead of picking one learner.',
       },
       createNewAssessmentLabel: {
         message: 'Create new assessment',
