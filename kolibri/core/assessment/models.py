@@ -54,6 +54,9 @@ class ExamAssessment(AbstractFacilityDataModel):
 
     seed = models.IntegerField(default=1)
 
+    # Time limit for the assessment, in minutes. Null or 0 means untimed.
+    time_limit_minutes = models.PositiveIntegerField(null=True, blank=True)
+
     assignments = JSONField(default=[], blank=True)
 
     channel_id = models.UUIDField(null=True)

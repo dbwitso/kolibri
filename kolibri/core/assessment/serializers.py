@@ -73,6 +73,7 @@ class ExamAssessmentSerializer(ModelSerializer):
             "data_model_version",
             "learners_see_fixed_order",
             "learner_ids",
+            "time_limit_minutes",
         )
         read_only_fields = ("data_model_version",)
 
@@ -281,6 +282,7 @@ class GetExamAssessmentSerializer(serializers.ModelSerializer):
             'id',
             'active',
             'archive',
+            'time_limit_minutes',
         )
 
 class GetGroupExamAssessmentSerializer(serializers.ModelSerializer):
@@ -314,6 +316,7 @@ class ExamAssessmentSerializer(serializers.ModelSerializer):
             "archive",
             "active",
             "assignments",
+            "time_limit_minutes",
         )
 
 class ExamAssessmentGroupDataSerializer(serializers.ModelSerializer):
