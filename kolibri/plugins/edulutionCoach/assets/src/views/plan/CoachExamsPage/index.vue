@@ -249,7 +249,10 @@
         return this.sortedExams;
       },
       newExamRoute() {
-        return { name: PageNames.EXAM_CREATION_ROOT };
+        return {
+          name: PageNames.EXAM_CREATION_ROOT,
+          params: { classId: this.$route.params.classId },
+        };
       },
       dropdownOptions() {
         return [

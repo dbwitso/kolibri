@@ -213,7 +213,10 @@
         return '';
       },
       newExamRoute() {
-        return { name: PageNames.ASSESSMENT_CREATION_ROOT };
+        return {
+          name: PageNames.ASSESSMENT_CREATION_ROOT,
+          params: { classId: this.$route.params.classId },
+        };
       },
     },
     mounted() {
