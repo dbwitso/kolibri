@@ -10,7 +10,11 @@
       </h1>
 
       <AssignedLessonsCards v-if="canViewLessons" :lessons="activeLessons" />
-      <AssignedQuizzesCards :quizzes="activeQuizzes" :style="{ marginTop: '44px' }" />
+      <AssignedQuizzesCards
+        v-if="canViewQuizzes"
+        :quizzes="activeQuizzes"
+        :style="{ marginTop: '44px' }"
+      />
       <AssessmentCards :assessments="assessments" :style="{ marginTop: '44px' }" />
     </div>
   </LearnAppBarPage>
@@ -32,8 +36,8 @@
   import useLearnerResources, { getLearnerAssessments } from '../../composables/useLearnerResources';
   import commonLearnStrings from './../commonLearnStrings';
   import LearnAppBarPage from './../LearnAppBarPage';
-  import AssignedQuizzesCards from './AssignedQuizzesCards';
   import AssignedLessonsCards from './AssignedLessonsCards';
+  import AssignedQuizzesCards from './AssignedQuizzesCards';
   import AssessmentCards from './AssessmentCards';
 
   export default {
@@ -44,8 +48,8 @@
       };
     },
     components: {
-      AssignedQuizzesCards,
       AssignedLessonsCards,
+      AssignedQuizzesCards,
       KBreadcrumbs,
       LearnAppBarPage,
       AssessmentCards
@@ -107,9 +111,12 @@
       ...mapGetters(['facilityConfig', 'isLearner', 'isCoach']),
       canViewLessons() {
         if(this.isLearner || this.isCoach){
-          /*TODO: use facilityconfig instead of hardcoded value*/
-          /*return this.facilityConfig.learner_can_view_lessons;*/
-          return false;
+          return this.facilityConfig.learner_can_view_lessons;
+        }
+      },
+      canViewQuizzes() {
+        if(this.isLearner || this.isCoach){
+          return this.facilityConfig.learner_can_view_quizzes;
         }
       },
 
