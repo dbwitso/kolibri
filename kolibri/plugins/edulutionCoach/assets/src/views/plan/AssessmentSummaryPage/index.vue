@@ -243,6 +243,7 @@
         assessmentid:"",
         groupActive:null,
         selectedQuestions : [],
+        selectedTestDetail: null,
         activeView: 'CURRENT',
       };
     },
@@ -308,10 +309,11 @@
       // @public
       toggleView(view,id) {
         this.currentView = view;
-        this.selectedId = id
-        const selectedQuestionSource = this.assessmentList.find(d => d.id == this.selectedId)
-        this.assessment = selectedQuestionSource
-        this.selectedQuestions = selectedQuestionSource?.current_question_sources
+        if (view === 'QUESTION_PREVIEW') {
+          this.selectedId = id
+          this.selectedTestDetail = this.assessmentList.find(d => d.id == this.selectedId)
+          this.selectedQuestions = this.selectedTestDetail?.current_question_sources
+        }
       },
       // @public
       setData(data) {
@@ -438,10 +440,13 @@
           this.submitModalOpen = !this.submitModalOpen;
         } ,
         getSelectedQuestions() {
-          if(this.activeView === 'All'){
-            return this.assessment.question_sources
+          if (!this.selectedTestDetail) {
+            return [];
           }
-          return this.assessment.current_question_sources
+          if(this.activeView === 'All'){
+            return this.selectedTestDetail.question_sources
+          }
+          return this.selectedTestDetail.current_question_sources
         },
         toggleQuestionSources(data){
          this.activeView = data
