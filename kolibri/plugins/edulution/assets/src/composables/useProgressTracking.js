@@ -76,6 +76,9 @@ export default function useProgressTracking(store) {
   const time_spent = ref(null);
   const time_spent_delta = ref(null);
   const session_id = ref(null);
+  // Server-authoritative timestamp of when this content session was first created -
+  // stable across reloads (see kolibri/core/logger/api.py _get_or_create_summarylog).
+  const start_timestamp = ref(null);
   const extra_fields = reactive({});
   const extra_fields_dirty_bit = ref(null);
   const mastery_criterion = ref(null);
@@ -157,6 +160,7 @@ export default function useProgressTracking(store) {
       set(time_spent, valOrNull(data.time_spent));
       set(time_spent_delta, 0);
       set(session_id, valOrNull(data.session_id));
+      set(start_timestamp, valOrNull(data.start_timestamp));
       clearObject(extra_fields);
       Object.assign(extra_fields, data.extra_fields || {});
       set(mastery_criterion, valOrNull(data.mastery_criterion));
@@ -542,6 +546,7 @@ export default function useProgressTracking(store) {
     startTrackingProgress,
     stopTrackingProgress,
     session_id,
+    start_timestamp,
     context,
     progress: progress_state,
     progress_delta,
