@@ -47,7 +47,7 @@ function _cacheLessonResources(lesson) {
 }
 
 function setClassData(classroom) {
-  for (const lesson of classroom.assignments.lessons) {
+  for (const lesson of classroom.assignments?.lessons || []) {
     _cacheLessonResources(lesson);
   }
 }
@@ -72,23 +72,26 @@ export async function getLearnerAssessments(learnerId, classroomId) {
       force: true
     })
     
-    return response.map(r => {
-      return {
-        ...r,
-        "group_id": r.id,
-        "id": r.current_assessment.id,
-        "group_title": r.title,
-        "title": r.current_assessment.title,
-        "question_sources": r.current_assessment.question_sources,
-        "missing_resource": false,
-        "progress": {
-          "score": null,
-          "answer_count": null,
-          "closed": null,
-          "started": null,
+    return response
+      .filter(r => r.current_assessment)
+      .map(r => {
+        return {
+          ...r,
+          "group_id": r.id,
+          "id": r.current_assessment.id,
+          "group_title": r.title,
+          "title": r.current_assessment.title,
+          "question_sources": r.current_assessment.question_sources,
+          "time_limit_minutes": r.current_assessment.time_limit_minutes,
+          "missing_resource": false,
+          "progress": {
+            "score": null,
+            "answer_count": null,
+            "closed": null,
+            "started": null,
+          }
         }
-      }
-    });
+      });
   } catch (error) {
     console.log("error", { error }) 
   }
@@ -136,6 +139,7 @@ export default function useLearnerResources() {
             lessonId: l.id,
             classId: c.id,
             contentNode: r.contentnode,
+            locked: Boolean(r.locked),
           }))
         ),
       2
