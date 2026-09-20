@@ -17,12 +17,12 @@ const sideNavConfig = {
         route: baseRoutes.home.path,
         name: baseRoutes.home.name,
       },
-      {
-        label: coreStrings.$tr('playlistsLabel'),
-        icon: 'library',
-        route: baseRoutes.library.path,
-        name: baseRoutes.library.name,
-      },
+      // {
+      //   label: coreStrings.$tr('playlistsLabel'),
+      //   icon: 'library',
+      //   route: baseRoutes.library.path,
+      //   name: baseRoutes.library.name,
+      // },
       // {
       //   label: coreStrings.$tr('bookmarksLabel'),
       //   icon: 'bookmark',

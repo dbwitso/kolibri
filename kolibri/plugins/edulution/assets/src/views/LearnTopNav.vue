@@ -32,7 +32,6 @@
       };
     },
     computed: {
-      ...mapGetters(['isUserLoggedIn', 'canAccessUnassignedContent']),
       ...mapGetters(['isUserLoggedIn', 'canAccessUnassignedContent', 'getUserKind']),
       links() {
         return [
@@ -43,13 +42,13 @@
             icon: 'dashboard',
             color: this.$themeTokens.textInverted,
           },
-          {
-            isHidden: !this.canAccessUnassignedContent,
-            title: this.coreString('playlistsLabel'),
-            link: this.$router.getRoute(PageNames.LIBRARY),
-            icon: 'library',
-            color: this.$themeTokens.textInverted,
-          },
+          // {
+          //   isHidden: !this.canAccessUnassignedContent,
+          //   title: this.coreString('playlistsLabel'),
+          //   link: this.$router.getRoute(PageNames.LIBRARY),
+          //   icon: 'library',
+          //   color: this.$themeTokens.textInverted,
+          // },
           // {
           //   isHidden: !this.isUserLoggedIn || !this.canAccessUnassignedContent,
           //   title: this.coreString('bookmarksLabel'),
