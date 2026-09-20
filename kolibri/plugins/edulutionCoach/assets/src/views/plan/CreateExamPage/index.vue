@@ -597,7 +597,10 @@
           this.$refs.questionsInput.focus();
           this.showError = true;
         } else {
-          this.$router.push({ name: PageNames.EXAM_CREATION_QUESTION_SELECTION });
+          this.$router.push({
+            name: PageNames.EXAM_CREATION_QUESTION_SELECTION,
+            params: { classId: this.classId },
+          });
         }
       },
       handleSearchTerm(searchTerm) {

@@ -302,7 +302,7 @@
         try {
           const result = await AssessmentResource.saveModel({ data })
           console.log({ result })
-          this.$router.push({ name: PageNames.ASSESSMENTS });
+          this.$router.push({ name: PageNames.ASSESSMENTS, params: { classId: this.classId } });
         } catch (error) {
           if (error?.response?.data?.error) {
             this.$store.dispatch('createSnackbar', error.response.data.error);
