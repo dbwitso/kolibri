@@ -76,14 +76,6 @@
             <div>
               <component :is="component" v-for="component in loginOptions" :key="component.name" />
             </div>
-            <p v-if="showGuestAccess" class="guest small-text">
-              <KExternalLink
-                :text="$tr('accessAsGuest')"
-                :href="guestURL"
-                :primary="true"
-                appearance="basic-link"
-              />
-            </p>
           </div>
         </div>
       </div>
@@ -96,6 +88,8 @@
             <CoreLogo
               v-if="themeConfig.signIn.showKolibriFooterLogo"
               class="footer-logo"
+              :src="themeConfig.signIn.footerLogo && themeConfig.signIn.footerLogo.src"
+              :alt="themeConfig.signIn.footerLogo && themeConfig.signIn.footerLogo.alt"
             />
             <span v-else> • </span>
             <KButton
@@ -152,7 +146,6 @@
   import useUser from 'kolibri.coreVue.composables.useUser';
   import themeConfig from 'kolibri.themeConfig';
   import loginComponents from 'kolibri.utils.loginComponents';
-  import urls from 'kolibri.urls';
   import { ComponentMap } from '../constants';
   import commonUserStrings from './commonUserStrings';
   import getUrlParameter from './getUrlParameter';
@@ -199,9 +192,6 @@
         }
         return { backgroundColor: this.$themeBrand.primary.v_900 };
       },
-      guestURL() {
-        return urls['kolibri:core:guest']();
-      },
       canSignUp() {
         return !this.isLearnerOnlyImport && this.facilityConfig.learner_can_sign_up;
       },
@@ -232,9 +222,6 @@
       oidcProviderFlow() {
         return plugin_data.oidcProviderEnabled && this.nextParam;
       },
-      showGuestAccess() {
-        return plugin_data.allowGuestAccess && !this.oidcProviderFlow;
-      },
       versionMsg() {
         // Split the version string at the first occurrence of '.' after the third number
         const version = __version.split('.').slice(0, 3).join('.');
@@ -242,11 +229,6 @@
       },
     },
     $trs: {
-      accessAsGuest: {
-        message: 'Explore without account',
-        context:
-          'Link on sign in page which upon clicking allows user to access Kolibri as a guest user.',
-      },
       oidcGenericExplanation: {
         message:
           'Kolibri is an e-learning platform. You can also use your Kolibri account to log in to some third-party applications.',
@@ -343,11 +325,6 @@
   .create {
     margin-top: 24px;
     margin-bottom: 0;
-  }
-
-  .guest {
-    margin-top: 24px;
-    margin-bottom: 8px;
   }
 
   .small-text {
