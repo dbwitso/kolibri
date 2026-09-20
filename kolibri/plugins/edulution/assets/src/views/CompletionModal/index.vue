@@ -144,6 +144,7 @@
 
 <script>
 
+  import { mapGetters } from 'vuex';
   import KResponsiveWindowMixin from 'kolibri-design-system/lib/KResponsiveWindowMixin';
   import UiAlert from 'kolibri-design-system/lib/keen/UiAlert';
   import { MaxPointsPerContent } from 'kolibri.coreVue.vuex.constants';
@@ -244,9 +245,9 @@
       };
     },
     computed: {
+      ...mapGetters(['facilityConfig']),
       showRecommendedContent(){
-        /*TODO: use facilityconfig instead of hardcoded value*/
-        return false;
+        return this.facilityConfig.learner_can_view_recommended_content;
       },
       contentNodeId() {
         return this.contentNode && this.contentNode.id;
@@ -331,9 +332,14 @@
       if (this.canAccessUnassignedContent) {
         promises.push(this.loadRecommendedContent());
       }
-      Promise.all(promises).then(() => {
-        this.loading = false;
-      });
+      Promise.all(promises)
+        .then(() => {
+          this.loading = false;
+        })
+        .catch(() => {
+          this.loading = false;
+          this.nextContentNode = null;
+        });
     },
     beforeMount() {
       this.lastFocus = document.activeElement;
