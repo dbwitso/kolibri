@@ -101,7 +101,7 @@ export function createPracticeQuizAndRoute(store, { classId, randomized }) {
     date_activated: null,
   };
   return createExam(store, exam).then(() => {
-    return router.push({ name: PageNames.EXAMS });
+    return router.push({ name: PageNames.EXAMS, params: { classId } });
   });
 }
 
@@ -118,7 +118,7 @@ export function createExamAndRoute(store, { classId }) {
     date_activated: null,
   };
   return createExam(store, exam).then(() => {
-    return router.push({ name: PageNames.EXAMS });
+    return router.push({ name: PageNames.EXAMS, params: { classId } });
   });
 }
 
