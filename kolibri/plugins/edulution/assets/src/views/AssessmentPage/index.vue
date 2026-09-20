@@ -15,10 +15,18 @@
         <div class="column-contents-wrapper">
           <KPageContainer>
             <div>
-              <p>{{ coreString('timeSpentLabel') }}</p>
-              <div :style="{ paddingBottom: '8px' }">
-                <TimeDuration class="timer" :seconds="time_spent" />
-              </div>
+              <template v-if="isTimed">
+                <p>{{ $tr('timeRemainingLabel') }}</p>
+                <div :style="{ paddingBottom: '8px' }">
+                  <TimeDuration class="timer" :seconds="remainingSeconds" />
+                </div>
+              </template>
+              <template v-else>
+                <p>{{ coreString('timeSpentLabel') }}</p>
+                <div :style="{ paddingBottom: '8px' }">
+                  <TimeDuration class="timer" :seconds="time_spent" />
+                </div>
+              </template>
               <p v-if="content && content.duration">
                 {{ learnString('suggestedTime') }}
               </p>
@@ -215,6 +223,7 @@
       const {
         pastattempts,
         time_spent,
+        start_timestamp,
         initContentSession,
         updateContentSession,
         startTrackingProgress,
@@ -223,6 +232,7 @@
       return {
         pastattempts,
         time_spent,
+        start_timestamp,
         initContentSession,
         updateContentSession,
         startTrackingProgress,
@@ -235,6 +245,9 @@
         // Note this time is only used to calculate the time spent on a
         // question, it is not used to generate any timestamps.
         startTime: Date.now(),
+        remainingSeconds: null,
+        countdownInterval: null,
+        autoSubmitted: false,
       };
     },
     computed: {
@@ -269,6 +282,21 @@
       },
       content() {
         return this.contentNodeMap[this.nodeId];
+      },
+      timeLimitSeconds() {
+        return this.exam.time_limit_minutes ? this.exam.time_limit_minutes * 60 : null;
+      },
+      isTimed() {
+        return this.timeLimitSeconds !== null;
+      },
+      // Anchored to the server-set start_timestamp (stable across reloads),
+      // never the client clock, so a learner can't extend their time by
+      // resetting their device clock.
+      deadline() {
+        if (!this.isTimed || !this.start_timestamp) {
+          return null;
+        }
+        return new Date(this.start_timestamp).getTime() + this.timeLimitSeconds * 1000;
       },
       currentAttempt() {
         return (
@@ -354,10 +382,25 @@
           this.startTime = Date.now();
         }
       },
+      deadline(newVal) {
+        if (newVal) {
+          this.startCountdown();
+        }
+      },
+    },
+    beforeDestroy() {
+      this.stopCountdown();
     },
     created() {
       this.initContentSession({ assessmentId: this.$route.params.examId })
-        .then(this.startTrackingProgress)
+        .then(() => {
+          this.startTrackingProgress();
+          // start_timestamp may already be set by the time this resolves
+          // (the deadline watcher above only fires on subsequent changes).
+          if (this.deadline) {
+            this.startCountdown();
+          }
+        })
         .catch(err => {
           if (err.response && err.response.status === 403) {
             // If exam is closed, then redirect to route for the report
@@ -375,6 +418,28 @@
         });
     },
     methods: {
+      startCountdown() {
+        this.stopCountdown();
+        const tick = () => {
+          this.remainingSeconds = Math.max(0, Math.round((this.deadline - Date.now()) / 1000));
+          if (this.remainingSeconds <= 0) {
+            this.stopCountdown();
+            if (!this.autoSubmitted) {
+              this.autoSubmitted = true;
+              this.submitModalOpen = false;
+              this.finishExam();
+            }
+          }
+        };
+        tick();
+        this.countdownInterval = setInterval(tick, 1000);
+      },
+      stopCountdown() {
+        if (this.countdownInterval) {
+          clearInterval(this.countdownInterval);
+          this.countdownInterval = null;
+        }
+      },
       setAndSaveCurrentExamAttemptLog({ close, interaction } = {}) {
         // Clear the learner classroom cache here as its progress data is now
         // stale
@@ -454,6 +519,7 @@
         this.submitModalOpen = !this.submitModalOpen;
       },
       async finishExam() {
+        this.stopCountdown();
         await this.saveAnswer(true)
         if (this.$route.params.assessmentGroupId) {
           const data = {
@@ -467,6 +533,10 @@
       },
     },
     $trs: {
+      timeRemainingLabel: {
+        message: 'Time remaining',
+        context: 'Label for the countdown timer shown while taking a timed assessment.',
+      },
       submitExam: {
         message: 'Submit assessment',
         context:
