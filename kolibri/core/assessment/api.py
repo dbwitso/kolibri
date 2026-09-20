@@ -14,7 +14,7 @@ from kolibri.core.auth.api import KolibriAuthPermissions
 from kolibri.core.auth.api import KolibriAuthPermissionsFilter
 from kolibri.core.auth.constants.collection_kinds import ADHOCLEARNERSGROUP
 from kolibri.core.content.models import ContentNode
-from kolibri.core.content.utils.annotation import total_file_size
+from kolibri.core.content.models import LocalFile
 from kolibri.core.assessment import models
 from kolibri.core.assessment import serializers
 from kolibri.core.logger.models import MasteryLog
@@ -88,6 +88,7 @@ class AssessmentViewset(ValuesViewset):
         "creator",
         "data_model_version",
         "learners_see_fixed_order",
+        "time_limit_minutes",
     )
 
     field_map = {"assignmentassessments": "assignment_collections"}
@@ -149,14 +150,29 @@ class AssessmentViewset(ValuesViewset):
     @action(detail=False)
     def size(self, request, **kwargs):
         exams = self.filter_queryset(self.get_queryset())
-        exams_sizes_set = []
-        for exam in exams:
-            quiz_size = {}
-            quiz_nodes = ContentNode.objects.filter(
-                id__in={source["exercise_id"] for source in exam.question_sources}
-            )
-            quiz_size[exam.id] = total_file_size(quiz_nodes)
-            exams_sizes_set.append(quiz_size)
+        exam_exercise_ids = {
+            exam.id: {source["exercise_id"] for source in exam.question_sources}
+            for exam in exams
+        }
+        all_exercise_ids = set().union(*exam_exercise_ids.values()) if exam_exercise_ids else set()
+
+        # One query for every exam's files instead of one query per exam:
+        # each row is (content node, local file, file_size), deduped per node
+        # the same way total_file_size() dedupes per exam.
+        file_rows = (
+            LocalFile.objects.filter(files__contentnode_id__in=all_exercise_ids)
+            .values("files__contentnode_id", "id", "file_size")
+            .distinct()
+        )
+        size_by_node = {}
+        for row in file_rows:
+            node_id = row["files__contentnode_id"]
+            size_by_node[node_id] = size_by_node.get(node_id, 0) + (row["file_size"] or 0)
+
+        exams_sizes_set = [
+            {exam_id: sum(size_by_node.get(node_id, 0) for node_id in exercise_ids)}
+            for exam_id, exercise_ids in exam_exercise_ids.items()
+        ]
 
         return Response(exams_sizes_set)
     
@@ -264,6 +280,8 @@ class CreateAssessmentRecord(ViewSet):
                         new_title = map_object.get('title')
                         current_question_limit = map_object.get('limit')
                         assessment_topic = map_object.get('exercises')
+                        # Optional key on the assessment_map template item; null/absent means untimed.
+                        time_limit_minutes = map_object.get('time_limit_minutes')
 
                         current_question_source, current_question_count = fetch_random_question_source(question_source, assessment_topic)
 
@@ -276,12 +294,13 @@ class CreateAssessmentRecord(ViewSet):
                             question_sources = question_source,
                             question_count = question_count ,
                             assessment_group_id = object.id,
-                            channel_id = channel_id, 
+                            channel_id = channel_id,
                             creator_id=creator_id,
                             current_questions_limit=current_question_limit,
                             current_question_sources = current_question_source,
                             current_question_count = current_question_count,
                             topicwise_weightage = assessment_topic,
+                            time_limit_minutes = time_limit_minutes,
                             extra_data = {'type': test['type'], 'level': test['level']}
                         )
 
@@ -436,10 +455,6 @@ class GetLearnerAssessmentViewset(ViewSet):
             learner_assessments = self.queryset.filter(learner_id=learner_id, collection=classroom_id, active=True)
             serializer = self.serializer_class(learner_assessments, many=True)
 
-            # Fetch question sources based on current_assessment
-            assessment_ids = [assessment['current_assessment'] for assessment in serializer.data]
-            question_sources = models.ExamAssessment.objects.filter(id__in=assessment_ids).values_list('question_sources', flat=True)
-
             return Response(serializer.data)
         except models.ExamAssessment.DoesNotExist:
             return Response({"error": "Learner Assessments not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -459,9 +474,20 @@ class FetchAssessmentGroupData(ViewSet):
             assessment_group = self.queryset.get(id=pk)
             serializer = self.serializer_class(assessment_group)
 
-            exam_assessments = models.ExamAssessment.objects.filter(assessment_group=pk)
+            exam_assessments = list(models.ExamAssessment.objects.filter(assessment_group=pk))
             exam_assessments_list = []
-            
+
+            # One query for every exercise title referenced across this group's
+            # assessments, instead of one query per unique exercise per assessment.
+            all_exercise_ids = {
+                question["exercise_id"]
+                for assessment in exam_assessments
+                for question in assessment.question_sources
+            }
+            exercise_titles = dict(
+                ContentNode.objects.filter(id__in=all_exercise_ids).values_list("id", "title")
+            )
+
             for assessment in exam_assessments:
                 assessment_dict = {
                     "id": assessment.id,
@@ -486,7 +512,7 @@ class FetchAssessmentGroupData(ViewSet):
                     exercise_id = question["exercise_id"]
                     
                     if find_index(assessment_dict["exercises"], "id", exercise_id) == -1:
-                        exercise_title = ContentNode.objects.get(id=question["exercise_id"]).title
+                        exercise_title = exercise_titles.get(question["exercise_id"])
                         assessment_dict["exercises"].append({
                             "id": question["exercise_id"],
                             "title": exercise_title,
@@ -589,7 +615,8 @@ class MarkAssessmentViewset(ViewSet):
                 assessment_group_level.last_assessment_level = last_assessment['level'][0]
                 Individual_current_assessment_level.archive = False
                 Individual_current_assessment_level.active = False
- 
+                Individual_current_assessment_level.save()
+
                 if percentage >= 75:
                     Individual_last_assessment_level.archive = True
                     Individual_last_assessment_level.active = True
@@ -597,7 +624,6 @@ class MarkAssessmentViewset(ViewSet):
 
             assessment_group_level.save()
             assessment_level.save()
-            Individual_current_assessment_level.save()
 
             summarylog = ContentSummaryLog.objects.get(
                     content_id = assessment_id,
