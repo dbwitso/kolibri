@@ -98,7 +98,7 @@
           <div>
             <KButton
               class="login-btn"
-              :text="$tr('nextLabel')"
+              :text="coreString('signInLabel')"
               :primary="true"
               :disabled="!isNextButtonEnabled"
               @click="signIn"
@@ -523,10 +523,6 @@
       documentTitle: {
         message: 'User Sign In',
         context: 'User sign in page.',
-      },
-      nextLabel: {
-        message: 'Next',
-        context: 'Button that user selects to navigate to the next page in the sign in process.',
       },
       changeUser: {
         message: 'Change user',
