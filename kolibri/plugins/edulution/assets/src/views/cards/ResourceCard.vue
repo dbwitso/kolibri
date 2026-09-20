@@ -10,8 +10,9 @@
       :style="{ backgroundColor: $themeTokens.text }"
     ></div>
     <BaseCard
-      v-bind="{ to, title, collectionTitle }"
+      v-bind="{ to, title, collectionTitle, disabled: locked }"
       class="resource-card"
+      :class="{ 'resource-card-locked': locked }"
     >
       <template #topLeft>
         <ContentNodeThumbnail
@@ -39,8 +40,14 @@
       </template>
 
       <template #progress>
+        <KLabeledIcon
+          v-if="locked"
+          :color="$themePalette.orange.v_400"
+          :label="$tr('lockedByCoachLabel')"
+          icon="warning"
+        />
         <!-- only show if we're not also showing a footer !-->
-        <ProgressBar v-if="!$slots.footer" :contentNode="contentNode" />
+        <ProgressBar v-else-if="!$slots.footer" :contentNode="contentNode" />
       </template>
     </BaseCard>
     <slot name="footer"></slot>
@@ -83,11 +90,26 @@
         required: false,
         default: '',
       },
+      /**
+       * When `true`, the card is shown as locked (e.g. by a coach) and
+       * cannot be navigated to.
+       */
+      locked: {
+        type: Boolean,
+        required: false,
+        default: false,
+      },
     },
     data() {
       return {
         title: this.contentNode ? this.contentNode.title : '',
       };
+    },
+    $trs: {
+      lockedByCoachLabel: {
+        message: 'Locked by your coach',
+        context: 'Shown on a resource card that a coach has locked.',
+      },
     },
   };
 
@@ -116,6 +138,11 @@
 
   .resource-card {
     padding-top: 26px;
+  }
+
+  .resource-card-locked {
+    cursor: not-allowed;
+    opacity: 0.75;
   }
 
 </style>

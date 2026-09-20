@@ -1,6 +1,13 @@
 <template>
 
-  <router-link :to="to" class="card-link" :class="themeClasses.link">
+  <div
+    v-if="disabled"
+    class="card-link"
+    :class="themeClasses.link"
+  >
+    <slot></slot>
+  </div>
+  <router-link v-else :to="to" class="card-link" :class="themeClasses.link">
     <slot></slot>
   </router-link>
 
@@ -15,6 +22,10 @@
       to: {
         type: Object,
         required: true,
+      },
+      disabled: {
+        type: Boolean,
+        default: false,
       },
     },
     computed: {

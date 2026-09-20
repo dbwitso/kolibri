@@ -2,6 +2,7 @@
 
   <CardLink
     :to="to"
+    :disabled="disabled"
     class="base-card"
   >
     <div>
@@ -110,6 +111,14 @@
         type: String,
         required: false,
         default: '',
+      },
+      /**
+       * When `true`, renders as a non-interactive card instead of a link.
+       */
+      disabled: {
+        type: Boolean,
+        required: false,
+        default: false,
       },
     },
   };
