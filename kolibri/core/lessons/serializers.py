@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+from rest_framework.serializers import BooleanField
 from rest_framework.serializers import ListField
 from rest_framework.serializers import ModelSerializer
 from rest_framework.serializers import PrimaryKeyRelatedField
@@ -21,6 +22,7 @@ class ResourceSerializer(Serializer):
     content_id = HexUUIDField()
     channel_id = HexUUIDField()
     contentnode_id = HexUUIDField()
+    locked = BooleanField(required=False, default=False)
 
 
 class LessonSerializer(ModelSerializer):

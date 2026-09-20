@@ -116,6 +116,32 @@ class Lesson(AbstractFacilityDataModel):
         return self.dataset_id
 
 
+class LearnerResourceLock(models.Model):
+    """
+    Tracks a per-learner lock on a single resource within a Lesson.
+    Created automatically when the learner completes the resource (see
+    ProgressTrackingViewSet._update_summary_log); only a coach or admin can
+    remove it, via Lesson's unlock-learner-resource action, to let the
+    learner access the resource again.
+
+    Unlike the lesson-wide 'locked' flag a coach can set directly on an
+    entry in Lesson.resources, this is scoped to one learner, is not part
+    of the syncable Lesson data, and is not synced between devices.
+    """
+
+    lesson = models.ForeignKey(
+        Lesson, related_name="learner_resource_locks", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        FacilityUser, related_name="resource_locks", on_delete=models.CASCADE
+    )
+    contentnode_id = models.CharField(max_length=32)
+    created = DateTimeTzField(default=local_now)
+
+    class Meta:
+        unique_together = ("lesson", "user", "contentnode_id")
+
+
 class LessonAssignment(AbstractFacilityDataModel):
     """
     Links LearnerGroup- or Classroom-type Collections to a Lesson
