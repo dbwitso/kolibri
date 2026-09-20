@@ -10,9 +10,9 @@
       </KGridItem>
       <KGridItem :layout12="{ span: 6 }">
         <KGrid gutter="16">
-          <KGridItem>
+          <!-- <KGridItem>
             <QuizzesBlock />
-          </KGridItem>
+          </KGridItem> -->
           <KGridItem>
             <LessonsBlock />
           </KGridItem>
@@ -43,7 +43,7 @@
   import OverviewBlock from './OverviewBlock';
   import ActivityBlock from './ActivityBlock';
   import LessonsBlock from './LessonsBlock';
-  import QuizzesBlock from './QuizzesBlock';
+  /*import QuizzesBlock from './QuizzesBlock';*/
   import AttendanceBlock from './AttendanceBlock';
   /*import AssessmentBlock from './AssessmentBlock.vue';*/
 
@@ -54,7 +54,7 @@
     OverviewBlock,
     ActivityBlock,
     LessonsBlock,
-    QuizzesBlock,
+    /*QuizzesBlock,*/
     AttendanceBlock,
     /*AssessmentBlock*/
 },
