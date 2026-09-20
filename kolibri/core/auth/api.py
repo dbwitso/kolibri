@@ -25,6 +25,7 @@ from django.db.models import Value
 from django.db.models.functions import Cast
 from django.http import Http404
 from django.http import HttpResponseBadRequest
+from django.utils.cache import patch_cache_control
 from django.utils.decorators import method_decorator
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
@@ -177,6 +178,23 @@ class FacilityDatasetFilter(FilterSet):
         fields = ["facility_id"]
 
 
+def short_lived_cache(view_func):
+    """
+    Lets clients cache a response for a short, bounded window. Used for
+    near-static, high-frequency reads (facility/dataset info) where a
+    60s-stale response is an acceptable tradeoff for cutting DB round-trips,
+    without building full ETag/invalidation machinery for it.
+    """
+
+    def wrapped_view(*args, **kwargs):
+        response = view_func(*args, **kwargs)
+        patch_cache_control(response, max_age=60)
+        return response
+
+    return wrapped_view
+
+
+@method_decorator(short_lived_cache, name="dispatch")
 class FacilityDatasetViewSet(ValuesViewset):
     permission_classes = (KolibriAuthPermissions,)
     filter_backends = (
@@ -196,6 +214,10 @@ class FacilityDatasetViewSet(ValuesViewset):
         "learner_can_login_with_no_password",
         "show_download_button_in_learn",
         "learner_can_view_lessons",
+        "learner_can_search_content",
+        "learner_can_view_recent_content",
+        "learner_can_view_other_libraries",
+        "learner_can_view_recommended_content",
         "extra_fields",
         "description",
         "location",
@@ -559,6 +581,7 @@ def _map_dataset(facility):
     return dataset
 
 
+@method_decorator(short_lived_cache, name="dispatch")
 class FacilityViewSet(ValuesViewset):
     permission_classes = (KolibriAuthPermissions,)
     filter_backends = (KolibriAuthPermissionsFilter,)
@@ -628,6 +651,7 @@ class FacilityViewSet(ValuesViewset):
         )
 
 
+@method_decorator(short_lived_cache, name="dispatch")
 class PublicFacilityViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Facility.objects.all()
     serializer_class = PublicFacilitySerializer

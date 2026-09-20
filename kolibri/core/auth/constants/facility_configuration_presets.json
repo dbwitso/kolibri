@@ -8,7 +8,12 @@
       "learner_can_delete_account": false,
       "learner_can_login_with_no_password": true,
       "show_download_button_in_learn": false,
-      "learner_can_view_lessons": false
+      "learner_can_view_lessons": false,
+      "learner_can_view_quizzes": false,
+      "learner_can_search_content": false,
+      "learner_can_view_recent_content": false,
+      "learner_can_view_other_libraries": false,
+      "learner_can_view_recommended_content": false
     }
   },
   "nonformal": {
@@ -21,7 +26,12 @@
       "learner_can_delete_account": true,
       "learner_can_login_with_no_password": false,
       "show_download_button_in_learn": true,
-      "learner_can_view_lessons": false
+      "learner_can_view_lessons": false,
+      "learner_can_view_quizzes": false,
+      "learner_can_search_content": false,
+      "learner_can_view_recent_content": false,
+      "learner_can_view_other_libraries": false,
+      "learner_can_view_recommended_content": false
     }
   },
   "informal": {
@@ -33,7 +43,12 @@
       "learner_can_delete_account": true,
       "learner_can_login_with_no_password": false,
       "show_download_button_in_learn": true,
-      "learner_can_view_lessons": false
+      "learner_can_view_lessons": false,
+      "learner_can_view_quizzes": false,
+      "learner_can_search_content": false,
+      "learner_can_view_recent_content": false,
+      "learner_can_view_other_libraries": false,
+      "learner_can_view_recommended_content": false
 
     }
   }
