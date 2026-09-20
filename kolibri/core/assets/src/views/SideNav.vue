@@ -110,16 +110,9 @@
                   @toggleMenu="toggleNav"
                 />
                 <LogoutSideNavEntry v-if="isUserLoggedIn" />
-                <!-- <CoreMenuOption
-                  :label="coreString('changeLanguageOption')"
-                  icon="language"
-                  class="pointer"
-                  @select="handleShowLanguageModal"
-                  @toggleMenu="toggleNav"
-                /> -->
                 <SideNavDivider />
               </template>
-              
+
             </CoreMenu>
 
             <div v-if="showSoudNotice" style="padding: 16px">
@@ -158,7 +151,6 @@
                 class="side-nav-scrollable-area-footer-logo"
               />
               <div class="side-nav-scrollable-area-footer-info">
-                <p>{{ footerMsg }}</p>
                 <!-- Not translated -->
                 <p>© {{ copyrightYear }} Learning Equality</p>
                 <p>
@@ -195,7 +187,7 @@
             <span
               class="side-nav-header-name"
               :style="{ color: $themeTokens.textInverted }"
-            >EDULUTION</span>
+            >MENU</span>
           </div>
         </FocusTrap>
       </div>
@@ -223,13 +215,6 @@
       @submit="privacyModalVisible = false"
     />
 
-    <LanguageSwitcherModal
-      v-if="languageModalShown"
-      ref="languageSwitcherModal"
-      :style="{ color: $themeTokens.text }"
-      @cancel="languageModalShown = false"
-    />
-
   </div>
 
 </template>
@@ -250,7 +235,6 @@
   import PrivacyInfoModal from 'kolibri.coreVue.components.PrivacyInfoModal';
   import themeConfig from 'kolibri.themeConfig';
   import Backdrop from 'kolibri.coreVue.components.Backdrop';
-  import LanguageSwitcherModal from 'kolibri.coreVue.components.LanguageSwitcherModal';
   import TotalPoints from 'kolibri.coreVue.components.TotalPoints';
   import navComponentsMixin from '../mixins/nav-components';
   import useUser from '../composables/useUser';
@@ -284,7 +268,6 @@
       PrivacyInfoModal,
       FocusTrap,
       TotalPoints,
-      LanguageSwitcherModal,
       LogoutSideNavEntry,
       BottomNavigationBar,
     },
@@ -310,7 +293,6 @@
         // __copyrightYear is injected by Webpack DefinePlugin
         copyrightYear: __copyrightYear,
         privacyModalVisible: false,
-        languageModalShown: false,
       };
     },
     computed: {
@@ -344,11 +326,6 @@
         // use the "non-app" upper navigation bar
         return this.isAppContext && !this.windowIsLarge;
       },
-      footerMsg() {
-        // Split the version string at the first occurrence of '.' after the third number
-        const mainVersion = __version.split('.').slice(0, 3).join('.');
-        return this.$tr('poweredBy', { version: mainVersion });
-      },
       topComponents() {
         return navComponents
           .filter(component => component.section !== NavComponentSections.ACCOUNT)
@@ -363,18 +340,10 @@
 
         return [...accountComponents]
           .filter(this.filterByRole)
-          .filter(this.filterByFullFacilityOnly)
-          // Removes 'My downloads' from Side Nav
-          .filter(component => component.label !== 'My downloads');
+          .filter(this.filterByFullFacilityOnly);
       },
       bottomMenuOptions() {
         return navComponents.filter(component => component.bottomBar == true);
-      },
-      sideNavTitleText() {
-        if (this.themeConfig.sideNav.title) {
-          return this.themeConfig.sideNav.title;
-        }
-        return this.coreString('kolibriLabel');
       },
       userIsLearner() {
         // learners and SOUD learners should display
@@ -420,9 +389,6 @@
     methods: {
       toggleNav() {
         this.$emit('toggleSideNav');
-      },
-      handleShowLanguageModal() {
-        this.languageModalShown = true;
       },
       handleClickPrivacyLink() {
         this.privacyModalVisible = true;
@@ -474,11 +440,6 @@
         message: 'Close navigation',
         context:
           "This message is providing additional context to the screen-reader users, but is not visible in the Kolibri UI.\n\nIn this case the screen-reader will announce the message when user navigates to the 'X' button with the keyboard, to indicate that it allows them to close the sidebar navigation menu. (Note that the sidebar needs to have been previously opened)",
-      },
-      poweredBy: {
-        message: 'Kolibri {version}',
-        context:
-          'Indicates the current version of Kolibri.\n\nFor languages with non-latin scripts, Kolibri should be transcribed phonetically into the target language, similar to a person\'s name. It should not be translated as "hummingbird".',
       },
       deviceStatus: {
         message: 'Device status',
@@ -587,10 +548,6 @@
   .side-nav-scrollable-area-footer-logo {
     max-width: 100%;
     height: 77px;
-  }
-
-  .pointer {
-    cursor: pointer;
   }
 
   .user-information {
