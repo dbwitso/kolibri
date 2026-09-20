@@ -21,6 +21,7 @@ from kolibri.core.content.api import ContentNodeViewset
 from kolibri.core.content.api import UserContentNodeViewset
 from kolibri.core.content.models import ContentNode
 from kolibri.core.exams.models import Exam
+from kolibri.core.lessons.models import LearnerResourceLock
 from kolibri.core.lessons.models import Lesson
 from kolibri.core.logger.models import AttemptLog
 from kolibri.core.logger.models import MasteryLog
@@ -85,6 +86,16 @@ def _consolidate_lessons_data(request, lessons):
 
     contentnode_map = {c["id"]: c for c in contentnodes}
 
+    if not request.user.is_anonymous and lessons:
+        learner_locked_resources = set(
+            LearnerResourceLock.objects.filter(
+                lesson_id__in=[lesson["id"] for lesson in lessons],
+                user=request.user,
+            ).values_list("lesson_id", "contentnode_id")
+        )
+    else:
+        learner_locked_resources = set()
+
     for lesson in lessons:
         lesson["progress"] = {
             "resource_progress": sum(
@@ -103,6 +114,8 @@ def _consolidate_lessons_data(request, lessons):
                 resource["contentnode_id"], None
             )
             missing_resource = missing_resource or not resource["contentnode"]
+            if (lesson["id"], resource["contentnode_id"]) in learner_locked_resources:
+                resource["locked"] = True
         lesson["missing_resource"] = missing_resource
 
 
