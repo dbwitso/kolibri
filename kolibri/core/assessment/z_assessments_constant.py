@@ -1,5 +1,6 @@
 class AssessmentConstant:
     PRE_TEST = 'PRE'
+    SECTION_LEVEL = 'SECTION'
     ORDER = 1
     LEVEL = 1
     DEFAULT = 0

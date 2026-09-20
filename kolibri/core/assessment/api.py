@@ -232,11 +232,57 @@ class CreateAssessmentRecord(ViewSet):
             if not creator_id:
                 creator_id = request_data.get('creator_id')
 
-            assessment_map_obj = AssessmentConfig.objects.get(channel_id=channel_id)
+            try:
+                assessment_map_obj = AssessmentConfig.objects.get(channel_id=channel_id)
+            except AssessmentConfig.DoesNotExist:
+                # First assessment ever created for this channel: there's no
+                # curriculum/level map yet to draw from. Build one from what
+                # this coach just configured (one level per topic, in the
+                # order submitted) and save it as the reusable template for
+                # every future assessment against this channel - see
+                # process_assessment_list() below for how 'type'/'order'/
+                # 'level' drive progression between levels.
+                if not assessment:
+                    return Response(
+                        {"error": "At least one topic must be selected to create an assessment"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                assessment_map_obj = AssessmentConfig.objects.create(
+                    channel_id=channel_id,
+                    assessment_map=[
+                        {
+                            "id": item.get("content_id"),
+                            "type": AssessmentConstant.SECTION_LEVEL,
+                            "order": index + 1,
+                            "level": index + 1,
+                        }
+                        for index, item in enumerate(assessment)
+                    ],
+                )
 
-            if not assessment_map_obj:
-                return Response({"error": "Assessment map config not found"}, status=status.HTTP_404_NOT_FOUND)
-            
+            # The channel's curriculum template only covers whichever topics were
+            # selected the first time an assessment was created for this channel.
+            # A later assessment picking a different/additional topic would silently
+            # produce zero question sources below - extend the template instead so
+            # every submitted topic has a level to draw from.
+            existing_topic_ids = {level.get('id') for level in assessment_map_obj.assessment_map}
+            new_topics = [
+                item for item in (assessment or [])
+                if item.get('content_id') not in existing_topic_ids
+            ]
+            if new_topics:
+                next_order = len(assessment_map_obj.assessment_map) + 1
+                assessment_map_obj.assessment_map = assessment_map_obj.assessment_map + [
+                    {
+                        "id": item.get("content_id"),
+                        "type": AssessmentConstant.SECTION_LEVEL,
+                        "order": next_order + index,
+                        "level": next_order + index,
+                    }
+                    for index, item in enumerate(new_topics)
+                ]
+                assessment_map_obj.save()
+
             assessment_group_obj = models.ExamAssessmentGroup.objects.filter(learner_id=learner_id, channel_id=channel_id, collection_id=collection)
 
             assessment_map_df = pd.DataFrame(assessment_map_obj.assessment_map)
@@ -265,8 +311,11 @@ class CreateAssessmentRecord(ViewSet):
             object = None
             if assessment_group_obj.exists():
                 object = assessment_group_obj[0]
-            
-            is_available = models.ExamAssessment.objects.filter(learner_id=learner_id, channel_id=channel_id, collection_id = collection)
+
+            # Only an assessment that's still in progress (not archived/ended) blocks
+            # creating a new one - once a coach ends an assessment for this learner in
+            # this channel/class, they can be given a fresh one for the same combo.
+            is_available = models.ExamAssessment.objects.filter(learner_id=learner_id, channel_id=channel_id, collection_id = collection, archive=False)
 
             instance_list = []
             final_response_list = []
@@ -322,9 +371,17 @@ class CreateAssessmentRecord(ViewSet):
                         instance_list.append(merged_test)
                         final_response_list.append(final_dict)
 
-                if len(instance_list) != AssessmentConstant.DEFAULT: 
-                    to_dict = {'assessment_map': json.dumps(instance_list), 'current_assessment_id': instance_list[0]['id'], 'current_assessment_level': instance_list[0]['level'], 'current_assessment_type': instance_list[0]['type']}
-                    models.ExamAssessmentGroup.objects.filter(learner_id=learner_id, channel_id=channel_id, collection_id = collection).update(**to_dict)
+                if len(instance_list) == AssessmentConstant.DEFAULT:
+                    return Response(
+                        {"error": "None of the selected topics have exercises to build an assessment from"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Reset archive/active on the (possibly reused, previously-ended) group so a
+                # freshly created assessment always starts closed, requiring an explicit
+                # 'Start' - same as a brand new group would.
+                to_dict = {'assessment_map': json.dumps(instance_list), 'current_assessment_id': instance_list[0]['id'], 'current_assessment_level': instance_list[0]['level'], 'current_assessment_type': instance_list[0]['type'], 'archive': False, 'active': False}
+                models.ExamAssessmentGroup.objects.filter(learner_id=learner_id, channel_id=channel_id, collection_id = collection).update(**to_dict)
 
                 return Response(final_response_list, status=status.HTTP_200_OK)
             
@@ -342,8 +399,14 @@ class ExamAssessmentStartViewSet(ViewSet):
             available_id = models.ExamAssessment.objects.filter(assessment_group_id=pk)
 
             available_group_id = models.ExamAssessmentGroup.objects.get(id=pk)
-            
+
             assessment_map = available_group_id.assessment_map
+
+            if not assessment_map:
+                return Response(
+                    {"error": "This assessment has no levels to start - it may have been created against topics with no exercises. Please recreate it."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             first_assessment_map = assessment_map[0]['id']
 
@@ -452,7 +515,11 @@ class GetLearnerAssessmentViewset(ViewSet):
             if not learner_id:
                 return Response({"error": "Learner ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-            learner_assessments = self.queryset.filter(learner_id=learner_id, collection=classroom_id, active=True)
+            filters = {'learner_id': learner_id, 'active': True}
+            if classroom_id:
+                filters['collection'] = classroom_id
+
+            learner_assessments = self.queryset.filter(**filters)
             serializer = self.serializer_class(learner_assessments, many=True)
 
             return Response(serializer.data)
