@@ -27,7 +27,7 @@
 
 <script>
 
-  import { mapActions, mapState } from 'vuex';
+  import { mapActions } from 'vuex';
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
   import { coachStringsMixin } from '../../common/commonCoachStrings';
 
@@ -49,7 +49,12 @@
       };
     },
     computed: {
-      ...mapState('classSummary', { classId: 'id' }),
+      classId() {
+        // classSummary.id is populated by an independent async fetch (initClassInfo)
+        // and is not guaranteed to be set yet when this page mounts/renders, unlike
+        // the classId route param which this page's own route always provides.
+        return this.$route.params.classId;
+      },
       duplicateName() {
         const index = this.groups.findIndex(
           group => group.name.toUpperCase() === this.name.toUpperCase()

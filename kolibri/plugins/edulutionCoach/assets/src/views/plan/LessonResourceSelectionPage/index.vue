@@ -164,7 +164,6 @@
     },
     computed: {
       ...mapState(['pageName']),
-      ...mapState('classSummary', { classId: 'id' }),
       ...mapState('lessonSummary', ['currentLesson', 'workingResources']),
       ...mapState('lessonSummary/resources', [
         'ancestorCounts',

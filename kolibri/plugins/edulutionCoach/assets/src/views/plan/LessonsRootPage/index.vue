@@ -197,7 +197,6 @@
       };
     },
     computed: {
-      ...mapState('classSummary', { classId: 'id' }),
       ...mapState('lessonsRoot', ['lessons', 'learnerGroups']),
       sortedLessons() {
         return this._.orderBy(this.lessons, ['date_created'], ['desc']);
@@ -216,7 +215,10 @@
         return countBy(this.lessons, 'is_active');
       },
       newLessonRoute() {
-        return { name: LessonsPageNames.LESSON_CREATION_ROOT };
+        // Lesson routes use an optional `:classId?` segment, and Vue Router does not
+        // reliably fill in optional segments from a `params` object on named-route
+        // navigation, so we build the literal path instead.
+        return { path: `/${this.classId}/plan/lessons/new` };
       },
       hasVisibleLessons() {
         return !(

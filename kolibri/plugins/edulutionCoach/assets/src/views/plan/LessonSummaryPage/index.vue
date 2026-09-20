@@ -109,7 +109,6 @@
       };
     },
     computed: {
-      ...mapState('classSummary', { classId: 'id' }),
       ...mapState('lessonSummary', ['currentLesson', 'workingResources']),
       loading() {
         return this.$store.state.core.loading;
