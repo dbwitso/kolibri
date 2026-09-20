@@ -52,6 +52,11 @@ export function resetFacilityConfig(store) {
       learner_can_login_with_no_password: data.learner_can_login_with_no_password,
       show_download_button_in_learn: data.show_download_button_in_learn,
       learner_can_view_lessons: data.learner_can_view_lessons,
+      learner_can_view_quizzes: data.learner_can_view_quizzes,
+      learner_can_search_content: data.learner_can_search_content,
+      learner_can_view_recent_content: data.learner_can_view_recent_content,
+      learner_can_view_other_libraries: data.learner_can_view_other_libraries,
+      learner_can_view_recommended_content: data.learner_can_view_recommended_content,
     });
   });
 }

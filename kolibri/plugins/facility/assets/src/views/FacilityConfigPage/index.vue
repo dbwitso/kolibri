@@ -255,7 +255,11 @@
     'learner_can_login_with_no_password',
     'show_download_button_in_learn',
     'learner_can_view_lessons',
-  
+    'learner_can_view_quizzes',
+    'learner_can_search_content',
+    'learner_can_view_recent_content',
+    'learner_can_view_other_libraries',
+    'learner_can_view_recommended_content',
   ];
 
   export default {
@@ -460,6 +464,26 @@
          /*New Disable Recent Lessons Option */
       learnerCanViewLessons: {
         message: 'Allow learners to view Lessons/Recent Lessons',
+        context: "Option on 'Facility settings' page.",
+      },
+      learnerCanViewQuizzes: {
+        message: 'Allow learners to view Quizzes',
+        context: "Option on 'Facility settings' page.",
+      },
+      learnerCanSearchContent: {
+        message: 'Allow learners to search content',
+        context: "Option on 'Facility settings' page.",
+      },
+      learnerCanViewRecentContent: {
+        message: 'Allow learners to view recent content',
+        context: "Option on 'Facility settings' page.",
+      },
+      learnerCanViewOtherLibraries: {
+        message: 'Allow learners to view other libraries',
+        context: "Option on 'Facility settings' page.",
+      },
+      learnerCanViewRecommendedContent: {
+        message: 'Allow learners to view recommended content',
         context: "Option on 'Facility settings' page.",
       },
       /* eslint-enable kolibri/vue-no-unused-translations */
