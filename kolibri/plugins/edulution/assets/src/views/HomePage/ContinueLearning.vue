@@ -16,14 +16,7 @@
           :contentNode="resource.contentNode"
           :to="genContentLinkBackLinkCurrentPage(resource.contentNode.id, true)"
           :collectionTitle="getResourceClassName(resource)"
-        />
-        <QuizCard
-          v-for="(quiz, idx) in resumableClassesQuizzes"
-          :key="`quiz-${idx}`"
-          :quiz="quiz"
-          :to="getClassQuizLink(quiz)"
-          :collectionTitle="getQuizClassName(quiz)"
-          showThumbnail
+          :locked="resource.locked"
         />
       </template>
       <template v-else>
@@ -63,7 +56,6 @@
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
   import { get } from '@vueuse/core';
   import CardGrid from '../cards/CardGrid';
-  import QuizCard from '../cards/QuizCard';
   import ResourceCard from '../cards/ResourceCard';
   import CopiesModal from '../CopiesModal';
   import useLearnerResources from '../../composables/useLearnerResources';
@@ -77,7 +69,6 @@
     components: {
       CardGrid,
       ResourceCard,
-      QuizCard,
       CopiesModal,
     },
     mixins: [commonCoreStrings],

@@ -3,37 +3,35 @@
   <LearnAppBarPage :appBarTitle="learnString('learnLabel')">
     <div v-if="!loading" id="main" role="main">
       <MissingResourceAlert v-if="missingResources" />
-      <YourClasses 
-        v-if="displayClasses" 
-        class="section" 
-        :classes="classes" 
-        data-test="classes" 
-        short 
+      <YourClasses
+        v-if="displayClasses && !isLearner"
+        class="section"
+        :classes="classes"
+        data-test="classes"
+        short
       />
-      <ContinueLearning 
+      <ContinueLearning
         v-if="continueLearning"
         class="section"
-        :fromClasses="continueLearningFromClasses" 
-        :data-test="continueLearningFromClasses ? 'continueLearningFromClasses' 
-          : 'continueLearningOnYourOwn'" 
+        :fromClasses="continueLearningFromClasses"
+        :data-test="continueLearningFromClasses ? 'continueLearningFromClasses'
+          : 'continueLearningOnYourOwn'"
       />
-      <AssignedLessonsCards 
-        v-if="hasActiveClassesLessons && canViewLessons" 
-        class="section" 
+      <AssignedLessonsCards
+        v-if="hasActiveClassesLessons && canViewLessons"
+        class="section"
         :lessons="activeClassesLessons"
-        displayClassName 
-        recent 
-        data-test="recentLessons" 
+        displayClassName
+        recent
+        data-test="recentLessons"
       />
-      <AssignedQuizzesCards 
-        v-if="hasActiveClassesQuizzes" 
-        class="section" 
-        :quizzes="activeClassesQuizzes"
-        displayClassName 
-        recent 
-        data-test="recentQuizzes" 
-      />
-      <AssessmentCards 
+      <p
+        v-else-if="isLearner"
+        class="section no-lessons-message"
+      >
+        {{ $tr('noLessonsVisibleMessage') }}
+      </p>
+      <AssessmentCards
         v-if="assessments.length" 
         class="section"
         :assessments="assessments"
@@ -74,7 +72,6 @@ import useLearnerResources, {
 import { setContentNodeProgress } from '../../composables/useContentNodeProgress';
 import { PageNames } from '../../constants';
 import AssignedLessonsCards from '../classes/AssignedLessonsCards';
-import AssignedQuizzesCards from '../classes/AssignedQuizzesCards';
 import YourClasses from '../YourClasses';
 import LearnAppBarPage from '../LearnAppBarPage';
 import AssessmentCards from '../classes/AssessmentCards';
@@ -92,7 +89,6 @@ export default {
   name: 'HomePage',
   components: {
     AssignedLessonsCards,
-    AssignedQuizzesCards,
     YourClasses,
     ContinueLearning,
     ExploreChannels,
@@ -121,9 +117,7 @@ export default {
     } = useLearnerResources();
 
     const continueLearningFromClasses = computed(
-      () =>
-        (get(isUserLoggedIn) && get(resumableClassesQuizzes).length > 0) ||
-        get(resumableClassesResources).length > 0
+      () => get(resumableClassesResources).length > 0
     );
     const continueLearningOnYourOwn = computed(
       () =>
@@ -243,11 +237,7 @@ export default {
         this.hasActiveClassesAssessments 
     },
       canViewLessons() {
-        if(this.isLearner){
-          /*TODO: use facilityconfig instead of hardcoded value*/
-          /*return this.facilityConfig.learner_can_view_lessons;*/
-          return false;
-        }
+        return true;
       },
 
     hasChannels() {
@@ -271,6 +261,12 @@ export default {
       this.assessments = res;
     });
   },
+  $trs: {
+    noLessonsVisibleMessage: {
+      message: 'Ask your coach to make Lessons visible for you to learn and watch the videos',
+      context: 'Shown to a learner on the home page when they have no visible lessons.',
+    },
+  },
 };
 
 </script>
@@ -283,5 +279,11 @@ export default {
 
 .section:first-child {
   margin-top: 16px;
+}
+
+.no-lessons-message {
+  padding: 48px 0;
+  font-weight: bold;
+  text-align: center;
 }
 </style>
