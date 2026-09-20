@@ -658,7 +658,7 @@ export default [
     component: () => import(/* webpackChunkName: "ReportsAssessmentLearnerListPage" */ '../views/reports/ReportsAssessmentLearnerListPage'),
     handler: defaultHandler,
     meta: {
-      titleParts: ['learnersLabel', 'QUIZ_NAME', 'CLASS_NAME'],
+      titleParts: ['learnersLabel', 'assessmentLabel', 'CLASS_NAME'],
     },
   },
   {
@@ -667,7 +667,7 @@ export default [
     component: () => import(/* webpackChunkName: "ReportsAssessmentQuestionListPage" */ '../views/reports/ReportsAssessmentQuestionListPage.vue'),
     handler: generateQuestionListHandler(['quizId']),
     meta: {
-      titleParts: ['questionsLabel', 'QUIZ_NAME', 'CLASS_NAME'],
+      titleParts: ['questionsLabel', 'assessmentLabel', 'CLASS_NAME'],
     },
   },
   {
@@ -693,7 +693,7 @@ export default [
     handler: generateAssessmentReportDetailHandler(['learnerId', 'quizId']),
     meta: {
       // Leaves out question and interaction numbers
-      titleParts: ['LEARNER_NAME', 'QUIZ_NAME', 'CLASS_NAME'],
+      titleParts: ['LEARNER_NAME', 'assessmentLabel', 'CLASS_NAME'],
     },
   },
   {
@@ -702,7 +702,7 @@ export default [
     component: () => import(/* webpackChunkName: "ReportsAssessmentPreviewPage" */ '../views/reports/ReportsAssessmentPreviewPage'),
     handler: defaultHandler,
     meta: {
-      titleParts: ['previewLabel', 'QUIZ_NAME', 'CLASS_NAME'],
+      titleParts: ['previewLabel', 'assessmentLabel', 'CLASS_NAME'],
     },
   },
 ];

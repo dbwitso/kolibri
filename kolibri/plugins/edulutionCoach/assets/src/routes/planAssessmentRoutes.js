@@ -93,7 +93,7 @@ export default [
     path: '/:classId/plan/assessments/:assessmentId',
     component: () => import(/* webpackChunkName: "AssessmentSummaryPage" */ '../views/plan/AssessmentSummaryPage/index.vue'),
     meta: {
-      titleParts: ['QUIZ_NAME', 'assessmentLabel', 'CLASS_NAME'],
+      titleParts: ['assessmentLabel', 'CLASS_NAME'],
     },
   },
 ];
