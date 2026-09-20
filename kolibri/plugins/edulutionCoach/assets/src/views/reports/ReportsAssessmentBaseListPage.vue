@@ -26,7 +26,7 @@
           :className="className"
           :groupAndAdHocLearnerNames="getRecipientNameForAssessment(assessmentDetails)"
           :exam="assessmentDetails"
-          showReportVisible="true"
+          :showReportVisible="true"
           variant="REPORT"
         />
       </KGridItem>

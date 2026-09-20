@@ -67,7 +67,7 @@
                 archive: d.archive,
                 attempt_count: d.attempt_count,
                 type: d.extra_data.type,
-                link: this.detailLink(statusData.assessment_id),
+                link: this.detailLink(statusData ? statusData.assessment_id : d.id),
                 currentQuestionCount: d.current_question_sources.length
               }
             })
@@ -119,18 +119,17 @@
               selectedExcerciseId.forEach(element =>{ 
               const selectedQuestion =  selectedAssessments?.question_sources?.filter(i => i.exercise_id === element)
               const topicTitle = [...new Set(selectedQuestion.map(i => i.title))]
-              const topicId = selectedQuestion.map(i => i.exercise_id)
 
-              const selectedCorrectQuestion = [] 
+              const selectedCorrectQuestion = []
 
               for(const correctQuesitons of  selectedQuestion){
-               if (statusData?.correct_question_ids.includes(correctQuesitons.question_id)){
+               if (statusData?.correct_question_ids?.includes(correctQuesitons.question_id)){
                   selectedCorrectQuestion.push(correctQuesitons.question_id)
                }
               }
-         
+
               const breakdownData = {
-                      id: topicId,
+                      id: element,
                       title: topicTitle.join(''),
                       question_count: selectedQuestion?.length,
                       score: selectedCorrectQuestion.length || null,
@@ -148,14 +147,17 @@
         }, { assessmentGroupId: this.assessmentDetails.id });
       },
       async onviewAttemptsClick(assessmentId) {
-          const response = await AssessmentReport.fetchModel({ id: assessmentId })
+          try {
+            const response = await AssessmentReport.fetchModel({ id: assessmentId })
 
-          const histoyData = Object.values(response).map((item) =>({
-            ...item,
-            link: this.detailLink(item.assessment_id)
-          }))
-
-          this.attemptHistory = histoyData
+            this.attemptHistory = Object.values(response).map((item) =>({
+              ...item,
+              link: this.detailLink(item.assessment_id)
+            }))
+          } catch (error) {
+            // No sessions logged for this learner/test yet - show the empty state.
+            this.attemptHistory = []
+          }
 
           this.currentView = 'TEST_ATTEMPTS'
 

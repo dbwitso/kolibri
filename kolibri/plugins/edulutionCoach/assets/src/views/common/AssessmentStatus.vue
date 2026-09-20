@@ -143,7 +143,7 @@
           <div>
             <Recipients
               :groupNames="groupAndAdHocLearnerNames"
-              :hasAssignments="exam.assignments.length > 0"
+              :hasAssignments="Boolean(exam.assignments && exam.assignments.length)"
             />
           </div>
         </KGridItem>
@@ -271,7 +271,11 @@
       variant: {
         type: String,
         default: 'PLAN',
-      }
+      },
+      showReportVisible: {
+        type: Boolean,
+        default: true,
+      },
     },
     data() {
       return {

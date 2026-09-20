@@ -45,30 +45,28 @@
           </td>
           <td
             :style="{
-              maxWidth: '370px',
               display: 'flex',
-              gap: '10px'
+              flexWrap: 'nowrap',
+              gap: '4px'
             }"
           >
-            <span 
-              :class="tableRow.attempt_count >= 1 ? 'btn-style' : 'disabled-btn'"
-              @click.prevent="tableRow.attempt_count >= 1 && onViewDetailsClick(tableRow)"
-            >
-              View Details
-            </span>
-
-            <span 
-              class="btn-style"
-              @click.prevent="onTestTitleClick(tableRow)"
-            >
-              View Breakdown
-            </span>
-            <span 
-              :class="isPastEnabled(tableRow.type , tableRow.attempt_count, tableRow.archive) ? 'btn-style' : 'disabled-btn'"
-              @click.prevent="isPastEnabled(tableRow.type , tableRow.attempt_count, tableRow.archive) && onviewAttemptsClick(tableRow.id)"
-            >
-              View Past
-            </span>
+            <KButton
+              :text="$tr('viewDetailsLabel')"
+              appearance="flat-button"
+              :disabled="tableRow.attempt_count < 1"
+              @click="onViewDetailsClick(tableRow)"
+            />
+            <KButton
+              :text="$tr('viewBreakdownLabel')"
+              appearance="flat-button"
+              @click="onTestTitleClick(tableRow)"
+            />
+            <KButton
+              :text="$tr('viewPastLabel')"
+              appearance="flat-button"
+              :disabled="!isPastEnabled(tableRow.type, tableRow.attempt_count, tableRow.archive)"
+              @click="onviewAttemptsClick(tableRow.id)"
+            />
           </td>
         </tr>
       </transition-group>
@@ -156,7 +154,19 @@
         weightageLabel:{
           message: 'Weightage',
           context: '',
-        }
+        },
+        viewDetailsLabel: {
+          message: 'View Details',
+          context: '',
+        },
+        viewBreakdownLabel: {
+          message: 'View Breakdown',
+          context: '',
+        },
+        viewPastLabel: {
+          message: 'View Past',
+          context: '',
+        },
       },
     };
   
@@ -182,25 +192,5 @@
       min-width: 100px;
     }
 
-    .btn-style{
-    color: blue  !important;
-    cursor: pointer;
-    border-radius: 8px;
-    padding: 2px 9px;
-    box-shadow: 0 2px 3px 1px rgba(0, 0, 0, 0.2);
-    text-align:center
-  }
-
-  .disabled-btn{
-    cursor: not-allowed;
-    opacity: 0.7;
-    filter: grayscale(8);
-    border: 1px solid #80808047;
-    border-radius: 8px;
-    padding: 2px 9px;
-    box-shadow: 0 1px 2px 0px rgba(0, 0, 0, 0.2);
-    text-align:center
-  }
-  
   </style>
   
