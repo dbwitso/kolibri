@@ -165,7 +165,7 @@
       },
       masteryModel() {
         const masteryModel = get(this, 'currentTry.mastery_criterion.type', null);
-        if (masteryModel && masteryModel !== 'quiz') {
+        if (masteryModel && masteryModel !== 'quiz' && masteryModel !== 'assessment') {
           return this.currentTry.mastery_criterion;
         }
         return null;

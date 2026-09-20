@@ -225,7 +225,13 @@ export function getAssessmentReport(examId, tryIndex = 0, questionNumber = 0, in
 
         contentPromise.then(
           contentNodes => {
-            const questions = convertExamQuestionSources(exam, { contentNodes });
+            // Assessment question_sources/current_question_sources never have
+            // counter_in_exercise baked in at creation time the way native quiz
+            // question_sources do - back-fill it here so the questions shape
+            // matches what ExamReport's prop validator requires.
+            const questions = annotateQuestionSourcesWithCounter(
+              convertExamQuestionSources(exam, { contentNodes, type: 'ASSESSMENT' })
+            );
 
             // When all the Exercises are not available on the server
             if (questions.length === 0) {
