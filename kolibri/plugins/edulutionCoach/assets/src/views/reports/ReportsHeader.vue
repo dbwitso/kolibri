@@ -78,16 +78,16 @@
             label: this.coreString('lessonsLabel'),
             to: this.classRoute('ReportsLessonListPage'),
           },
-/*          {
+          {
             id: ReportsTabs.QUIZZES,
             label: this.coreString('quizzesLabel'),
             to: this.classRoute('ReportsQuizListPage'),
-          },*/
-/*          {
+          },
+          {
             id: ReportsTabs.ASSESSMENT,
             label: this.coreString('assessmentLabel'),
             to: this.classRoute('ReportsAssessmentListPage'),
-          },*/
+          },
           {
             id: ReportsTabs.GROUPS,
             label: this.coachString('groupsLabel'),

@@ -81,6 +81,11 @@
             disabled: this.resourceIsDisabled(NotificationObjects.LESSON),
           },
           {
+            label: this.coreString('quizzesLabel'),
+            value: 'quiz',
+            disabled: this.resourceIsDisabled(NotificationObjects.QUIZ),
+          },
+          {
             label: this.coreString('assessmentLabel'),
             value: 'assessment',
             disabled: this.resourceIsDisabled(NotificationObjects.ASSESSMENT),
