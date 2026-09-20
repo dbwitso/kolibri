@@ -17,6 +17,6 @@ ENTRYPOINT ["python", "/docker/entrypoint.py"]
 
 # Install kolibri from source
 RUN cd /kolibri \
-    && pip install -e .
+    && pip3 install -e .
 
 CMD ["yarn", "run", "devserver"]

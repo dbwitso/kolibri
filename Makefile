@@ -311,6 +311,7 @@ docker-devserver: docker-envlist
 			-t "learningequality/kolibridev" .
 	docker run --init \
 			-v $$PWD/docker/mnt:/docker/mnt \
+			-v $$PWD/docker/mnt/kolibrihome:/kolibrihome \
 			-p 8000:8000 \
 			-p 3000:3000 \
 			--env-file ./docker/env.list \
@@ -318,6 +319,10 @@ docker-devserver: docker-envlist
 			yarn run devserver
 	echo "Check http://localhost:8000  you should have devserver running there."
 	git checkout -- ./docker/env.list  # restore env.list file
+
+# KOLIBRI_HOME (database, content, logs) is bind-mounted from docker/mnt/kolibrihome
+# so it survives container rebuilds/removal. To reset to a clean install, delete that
+# directory before running this target again.
 
 # Optionally add --env KOLIBRI_PROVISIONDEVICE_FACILITY="Dev Server" to skip setup wizard
 
