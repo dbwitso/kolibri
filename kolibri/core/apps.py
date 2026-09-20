@@ -81,6 +81,8 @@ class KolibriCoreConfig(AppConfig):
 
             # We don't turn on the following pragmas, because they have negligible
             # performance impact. For reference, here's what we've tested:
+            # (NB: synchronous=NORMAL, a safer middle ground under WAL, is set
+            # separately above via CONNECTION_PRAGMAS.)
 
             # Don't ensure that the OS has fully flushed
             # our data to disk.
