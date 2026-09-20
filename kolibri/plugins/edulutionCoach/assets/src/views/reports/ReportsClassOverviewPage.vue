@@ -66,7 +66,7 @@
                   <KIcon
                     v-if="tableRow.currently_active"
                     :color="$themeTokens.mastered"
-                    icon="clock"
+                    icon="inProgress"
                   />
                   <KEmptyPlaceholder v-else />
                 </td>
