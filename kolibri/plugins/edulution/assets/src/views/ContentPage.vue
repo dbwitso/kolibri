@@ -78,6 +78,12 @@
       />
     </template>
 
+    <AuthMessage
+      v-else-if="sessionLocked"
+      :header="$tr('resourceLockedHeader')"
+      :details="sessionErrorDetails"
+    />
+
     <CompletionModal
       v-if="showCompletionModal"
       ref="completionModal"
@@ -113,6 +119,7 @@
   import { setContentNodeProgress } from '../composables/useContentNodeProgress';
   import useProgressTracking from '../composables/useProgressTracking';
   import useContentLink from '../composables/useContentLink';
+  import AuthMessage from 'kolibri.coreVue.components.AuthMessage';
   import AssessmentWrapper from './AssessmentWrapper';
   import commonLearnStrings from './commonLearnStrings';
   import CompletionModal from './CompletionModal';
@@ -134,6 +141,7 @@
       CompletionModal,
       QuizRenderer,
       MarkAsCompleteModal,
+      AuthMessage,
     },
     mixins: [commonLearnStrings, responsiveWindowMixin],
     setup() {
@@ -204,6 +212,7 @@
         showCompletionModal: false,
         wasComplete: false,
         sessionReady: false,
+        sessionError: null,
       };
     },
     computed: {
@@ -212,6 +221,17 @@
         fullName: state => state.core.session.full_name,
       }),
       ...mapState(['showCompleteContentModal']),
+      sessionLocked() {
+        return Boolean(
+          this.sessionError && get(this.sessionError, ['response', 'status']) === 403
+        );
+      },
+      sessionErrorDetails() {
+        return (
+          get(this.sessionError, ['response', 'data', 'detail']) ||
+          this.$tr('resourceUnavailableDetails')
+        );
+      },
       practiceQuiz() {
         return get(this, ['content', 'options', 'modality']) === Modalities.QUIZ;
       },
@@ -323,6 +343,7 @@
         /* Always be sure that this is hidden before the component renders */
         this.hideMarkAsCompleteModal();
         this.sessionReady = false;
+        this.sessionError = null;
         return this.initContentSession({
           node: this.content,
           lessonId: this.lessonId,
@@ -332,6 +353,9 @@
           this.wasComplete = this.progress >= 1;
           // Set progress into the content node progress store in case it was not already loaded
           this.cacheProgress();
+        }).catch(error => {
+          this.sessionError = error;
+          this.$emit('error', error);
         });
       },
       repeat() {
@@ -343,6 +367,16 @@
         this.$nextTick(() => {
           this.$refs.completionModal.focusFirstEl();
         });
+      },
+    },
+    $trs: {
+      resourceLockedHeader: {
+        message: 'This resource is locked',
+        context: 'Header shown to a learner when a coach has locked a lesson resource.',
+      },
+      resourceUnavailableDetails: {
+        message: 'This resource is not currently available to you.',
+        context: 'Fallback message shown when a resource cannot be opened.',
       },
     },
   };
