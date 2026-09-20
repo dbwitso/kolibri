@@ -36,6 +36,7 @@
           :content="content"
           class="content-card"
           :isMobile="windowIsSmall"
+          :locked="isResourceLocked(content.id)"
           :link="genContentLinkBackLinkCurrentPage(content.id, true)"
         />
       </section>
@@ -153,6 +154,10 @@
     },
     methods: {
       ...mapMutations('lessonPlaylist', ['SET_CURRENT_LESSON']),
+      isResourceLocked(contentNodeId) {
+        const resource = this.lessonResources.find(r => r.contentnode_id === contentNodeId);
+        return Boolean(resource && resource.locked);
+      },
     },
     $trs: {
       noResourcesInLesson: {
