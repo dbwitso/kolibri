@@ -67,6 +67,8 @@ from kolibri.core.content.utils.file_availability import LocationError
 from kolibri.core.content.utils.importability_annotation import (
     get_channel_stats_from_disk,
 )
+from kolibri.core.content.utils.learner_visibility import get_assigned_content_ids
+from kolibri.core.content.utils.learner_visibility import is_restricted_learner
 from kolibri.core.content.utils.importability_annotation import (
     get_channel_stats_from_peer,
 )
@@ -702,6 +704,13 @@ class InternalContentNodeMixin(BaseContentNodeMixin):
     field_map = BaseContentNodeMixin.field_map.copy()
 
     field_map["admin_imported"] = lambda x: bool(x["admin_imported"])
+
+    def get_queryset(self):
+        queryset = super(InternalContentNodeMixin, self).get_queryset()
+        user = getattr(getattr(self, "request", None), "user", None)
+        if user is not None and is_restricted_learner(user):
+            queryset = queryset.filter(id__in=get_assigned_content_ids(user))
+        return queryset
 
     def update_data(self, response_data, baseurl):
         if type(response_data) is dict:
