@@ -75,6 +75,15 @@
               />
             </div>
 
+            <div class="relative lock-switch">
+              <KSwitch
+                :label="$tr('lockResourceLabel')"
+                :value="Boolean(resource.locked)"
+                :checked="Boolean(resource.locked)"
+                @change="toggleLocked(resource)"
+              />
+            </div>
+
             <div class="relative">
               <KButton
                 :text="coreString('removeAction')"
@@ -145,7 +154,6 @@
       ...mapActions('lessonSummary', [
         'saveLessonResources',
         'updateCurrentLesson',
-        'fetchLessonsSizes',
       ]),
       ...mapMutations('lessonSummary', {
         removeFromWorkingResources: 'REMOVE_FROM_WORKING_RESOURCES',
@@ -160,10 +168,18 @@
       resourceKind(resourceId) {
         return this.resourceContentNodes[resourceId].kind;
       },
+      toggleLocked(resource) {
+        const resources = this.workingResources.map(r =>
+          r.contentnode_id === resource.contentnode_id ? { ...r, locked: !r.locked } : r
+        );
+        this.setWorkingResources(resources);
+        this.autoSave(this.lessonId, resources);
+        this.showSnackbarNotification('changesSaved');
+      },
       removeResource(resource) {
         this.removeFromWorkingResources([resource]);
 
-        this.autoSave(this.lessonId, this.workingResources, this.classId);
+        this.autoSave(this.lessonId, this.workingResources);
 
         if (this.numberOfRemovals > 0) {
           this.showSnackbarNotification(
@@ -175,7 +191,7 @@
               actionText: this.$tr('undoActionPrompt'),
               actionCallback: () => {
                 this.setWorkingResources(this.workingResourcesBackup);
-                this.autoSave(this.lessonId, this.workingResources, this.classId);
+                this.autoSave(this.lessonId, this.workingResources);
                 this.clearSnackbar();
               },
               hideCallback: () => {
@@ -210,17 +226,13 @@
         this.autoSave(this.lessonId, newArray);
         this.showSnackbarNotification('resourceOrderSaved');
       },
-      autoSave(id, resources, classID) {
+      autoSave(id, resources) {
         this.saveLessonResources({ lessonId: id, resources: resources })
           .then(() => {
             this.updateCurrentLesson(id);
           })
-          .then(() => {
-            this.fetchLessonsSizes({ classId: classID });
-          })
           .catch(() => {
             this.updateCurrentLesson(id).then(currentLesson => {
-              this.fetchLessonsSizes({ classId: currentLesson.classroom.id });
               this.setWorkingResources(currentLesson.resources);
             });
           });
@@ -244,6 +256,11 @@
         context:
           'Describes the name of the main channel which the specific learning resource belongs to.\n',
       },
+      lockResourceLabel: {
+        message: 'Lock',
+        context:
+          'Label for a switch that lets a coach lock a resource so learners cannot open it until the coach unlocks it again.',
+      },
     },
   };
 
@@ -260,6 +277,10 @@
 
   .relative {
     position: relative;
+  }
+
+  .lock-switch {
+    flex-shrink: 0;
   }
 
   .link {
