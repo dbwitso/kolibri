@@ -4,15 +4,7 @@ import router from 'kolibri.coreVue.router';
 import useUser from 'kolibri.coreVue.composables.useUser';
 import useChannels from '../composables/useChannels';
 import { PageNames, ClassesPageNames, KolibriStudioId } from '../constants';
-import LibraryPage from '../views/LibraryPage';
-import HomePage from '../views/HomePage';
-import TopicsPage from '../views/TopicsPage';
-import TopicsContentPage from '../views/TopicsContentPage';
-import ContentUnavailablePage from '../views/ContentUnavailablePage';
-import BookmarkPage from '../views/BookmarkPage.vue';
-import ExploreLibrariesPage from '../views/ExploreLibrariesPage';
 import { showKnowledgemap } from '../modules/examViewer/handlers';
-import AssessmentHistoryPage from '../views/AssessmentHistoryPage';
 
 import classesRoutes from './classesRoutes';
 
@@ -44,7 +36,7 @@ export default [
   {
     name: PageNames.HOME,
     path: '/home',
-    component: HomePage,
+    component: () => import(/* webpackChunkName: "HomePage" */ '../views/HomePage'),
     handler(to, from, next) {
       if (!get(isUserLoggedIn)) {
         next({ name: PageNames.LIBRARY, replace: true });
@@ -73,7 +65,7 @@ export default [
       }
       store.commit('CORE_SET_PAGE_LOADING', true);
     },
-    component: LibraryPage,
+    component: () => import(/* webpackChunkName: "LibraryPage" */ '../views/LibraryPage'),
     props: route => {
       return {
         deviceId: route.params.deviceId,
@@ -88,10 +80,11 @@ export default [
       store.commit('CORE_SET_PAGE_LOADING', false);
       store.commit('CORE_SET_ERROR', null);
     },
-    component: ContentUnavailablePage,
+    component: () => import(/* webpackChunkName: "ContentUnavailablePage" */ '../views/ContentUnavailablePage'),
   },
   {
     // Handle historic channel page with redirect
+    name: 'TopicsPage',
     path: '/topics/:channel_id',
     handler: to => {
       return fetchChannels().then(() => {
@@ -110,7 +103,7 @@ export default [
         router.replace({ name: PageNames.ROOT });
       });
     },
-    component: TopicsPage,
+    component: () => import(/* webpackChunkName: "TopicsPage" */ '../views/TopicsPage'),
   },
   {
     // Handle redirect for links without the /folder appended
@@ -128,7 +121,7 @@ export default [
         return;
       }
     },
-    component: TopicsPage,
+    component: () => import(/* webpackChunkName: "TopicsPage" */ '../views/TopicsPage'),
     props: true,
   },
   {
@@ -140,13 +133,13 @@ export default [
         return;
       }
     },
-    component: TopicsPage,
+    component: () => import(/* webpackChunkName: "TopicsPage" */ '../views/TopicsPage'),
     props: true,
   },
   {
     name: PageNames.TOPICS_CONTENT,
     path: `/topics${optionalDeviceIdPathSegment}/c/:id`,
-    component: TopicsContentPage,
+    component: () => import(/* webpackChunkName: "TopicsContentPage" */ '../views/TopicsContentPage'),
     props: true,
   },
   {
@@ -160,12 +153,12 @@ export default [
       store.commit('CORE_SET_PAGE_LOADING', false);
       next();
     },
-    component: BookmarkPage,
+    component: () => import(/* webpackChunkName: "BookmarkPage" */ '../views/BookmarkPage.vue'),
   },
   {
     name: PageNames.EXPLORE_LIBRARIES,
     path: '/explore_libraries',
-    component: ExploreLibrariesPage,
+    component: () => import(/* webpackChunkName: "ExploreLibrariesPage" */ '../views/ExploreLibrariesPage'),
     handler: (to, from, next) => {
       if (!unassignedContentGuard(next)) {
         return;
@@ -179,7 +172,7 @@ export default [
   {
     name: PageNames.ASSESSMENT_HISTORY,
     path:'/assessmentHistory',
-    component: AssessmentHistoryPage
+    component: () => import(/* webpackChunkName: "AssessmentHistoryPage" */ '../views/AssessmentHistoryPage')
   },
   {
     path: '*',

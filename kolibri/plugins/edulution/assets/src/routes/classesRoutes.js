@@ -8,12 +8,6 @@ import { showAllClassesPage } from '../modules/classes/handlers';
 import { showExam, showAssessment } from '../modules/examViewer/handlers';
 import { showExamReport } from '../modules/examReportViewer/handlers';
 import { inClasses } from '../composables/useCoreLearn';
-import ExamPage from '../views/ExamPage';
-import ExamReportViewer from '../views/LearnExamReportViewer';
-import AllClassesPage from '../views/classes/AllClassesPage';
-import ClassAssignmentsPage from '../views/classes/ClassAssignmentsPage.vue';
-import LessonPlaylistPage from '../views/classes/LessonPlaylistPage';
-import AssessmentPage from '../views/AssessmentPage/index.vue';
 
 function noClassesGuard() {
   const { canAccessUnassignedContent } = store.getters;
@@ -32,7 +26,7 @@ export default [
     handler: () => {
       return noClassesGuard() || showAllClassesPage(store);
     },
-    component: AllClassesPage,
+    component: () => import(/* webpackChunkName: "AllClassesPage" */ '../views/classes/AllClassesPage'),
   },
   {
     name: ClassesPageNames.CLASS_ASSIGNMENTS,
@@ -41,7 +35,7 @@ export default [
       const { classId } = toRoute.params;
       return noClassesGuard() || showClassAssignmentsPage(store, classId);
     },
-    component: ClassAssignmentsPage,
+    component: () => import(/* webpackChunkName: "ClassAssignmentsPage" */ '../views/classes/ClassAssignmentsPage.vue'),
   },
   {
     name: ClassesPageNames.LESSON_PLAYLIST,
@@ -50,7 +44,7 @@ export default [
       const { classId, lessonId } = toRoute.params;
       return noClassesGuard() || showLessonPlaylist(store, { classId, lessonId });
     },
-    component: LessonPlaylistPage,
+    component: () => import(/* webpackChunkName: "LessonPlaylistPage" */ '../views/classes/LessonPlaylistPage'),
   },
   {
     name: ClassesPageNames.EXAM_VIEWER,
@@ -65,7 +59,7 @@ export default [
         toRoute.params.classId === fromRoute.params.classId;
       showExam(store, toRoute.params, alreadyOnQuiz);
     },
-    component: ExamPage,
+    component: () => import(/* webpackChunkName: "ExamPage" */ '../views/ExamPage'),
   },
   {
     name: ClassesPageNames.EXAM_REPORT_VIEWER,
@@ -76,7 +70,7 @@ export default [
       }
       showExamReport(store, toRoute.params);
     },
-    component: ExamReportViewer,
+    component: () => import(/* webpackChunkName: "ExamReportViewer" */ '../views/LearnExamReportViewer'),
   },
   {
     name: ClassesPageNames.ASSESSMENT_VIEWER,
@@ -92,6 +86,6 @@ export default [
         toRoute.params.assessmentGroupId === fromRoute.params.assessmentGroupId;
       showAssessment(store, toRoute.params, alreadyOnAssessment);
     },
-    component: AssessmentPage,
+    component: () => import(/* webpackChunkName: "AssessmentPage" */ '../views/AssessmentPage/index.vue'),
   },
 ];
