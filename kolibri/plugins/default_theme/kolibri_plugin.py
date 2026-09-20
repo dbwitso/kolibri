@@ -27,12 +27,55 @@ class DefaultThemeHook(theme_hook.ThemeHook):
         )
 
         return {
+            "brandColors": {
+                # Generated as a tint/shade ramp from the Edulution brand blue
+                # (#035db8, set at v_400 - the shade the "primary" token maps to).
+                "primary": {
+                    "v_50": "#ebf2f9",
+                    "v_100": "#cddff1",
+                    "v_200": "#9abee3",
+                    "v_300": "#5b96d1",
+                    "v_400": "#035db8",
+                    "v_500": "#0352a2",
+                    "v_600": "#02478c",
+                    "v_700": "#023c76",
+                    "v_800": "#022e5c",
+                    "v_900": "#012140",
+                },
+                "secondary": {
+                    "v_50": "#e3f0ed",
+                    "v_100": "#badbd2",
+                    "v_200": "#8dc5b6",
+                    "v_300": "#62af9a",
+                    "v_400": "#479e86",
+                    "v_500": "#368d74",
+                    "v_600": "#328168",
+                    "v_700": "#2c715a",
+                    "v_800": "#26614d",
+                    "v_900": "#1b4634",
+                },
+            },
             "signIn": {
                 "background": background_image,
                 "backgroundImgCredit": "Edulution",
                 "topLogo": {
+                    "src": static("assets/default_theme/edulution-logo.svg"),
+                    "alt": "Edulution",
                     "style": "padding-left: 64px; padding-right: 64px; margin-bottom: 8px; margin-top: 8px",
                 },
+                "footerLogo": {
+                    "src": static("assets/default_theme/edulution-symbol.png"),
+                    "alt": "Edulution",
+                    "style": "height: 24px; width: 24px",
+                },
+            },
+            "sideNav": {
+                "topLogo": {
+                    "src": static("assets/default_theme/edulution-logo.svg"),
+                    "alt": "Edulution",
+                    "style": "padding: 8px 16px; margin-bottom: 8px; margin-top: 8px",
+                },
+                "showKolibriFooterLogo": False,
             },
             "logos": [
                 {

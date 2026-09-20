@@ -114,6 +114,24 @@ export default {
           },
         },
       },
+      footerLogo: {
+        type: Object,
+        default: null,
+        spec: {
+          src: {
+            type: String,
+            default: null,
+          },
+          style: {
+            type: String,
+            default: null,
+          },
+          alt: {
+            type: String,
+            default: null,
+          },
+        },
+      },
       poweredByStyle: {
         type: String,
         default: null,
@@ -164,7 +182,7 @@ export default {
           },
           paragraphArray: {
             type: Array,
-            default: [],
+            default: () => [],
           },
         },
       },

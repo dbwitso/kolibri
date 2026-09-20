@@ -14,6 +14,11 @@ const themeConfig = Vue.observable({
       alt: null,
       style: null,
     },
+    footerLogo: {
+      src: null,
+      alt: null,
+      style: null,
+    },
     title: null,
     showTitle: null,
     titleStyle: null,
