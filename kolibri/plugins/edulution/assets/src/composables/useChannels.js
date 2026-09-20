@@ -58,7 +58,7 @@ async function fetchLearnerChannels({ isLearner, userId }) {
               if (group.member_ids.includes(userId)) {
                 subscribedChannelIdsByGroup = [
                   ...subscribedChannelIdsByGroup,
-                  ...(JSON.parse(group.subscriptions || []))
+                  ...(JSON.parse(group.subscriptions || '[]'))
                 ];
               }
             }
@@ -70,7 +70,7 @@ async function fetchLearnerChannels({ isLearner, userId }) {
         if (classroom && classroom.subscriptions) {
           subscribedChannelIds = [
             ...subscribedChannelIds,
-            ...(JSON.parse(classroom.subscriptions || []))
+            ...(JSON.parse(classroom.subscriptions || '[]'))
           ];
         }
 
