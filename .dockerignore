@@ -5,3 +5,4 @@ kolibri/kolibri/dist/
 dist/*
 .vscode/
 Dockerfile*
+docker/mnt/

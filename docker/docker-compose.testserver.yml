@@ -1,0 +1,60 @@
+version: "3.8"
+
+# Always-on Kolibri test server: Postgres-backed, production frontend build,
+# no webpack watch. Content lives on the host at KOLIBRI_DATA_DIR and is
+# imported via kolibri_helper_scripts (see docker/testserver.env.example for
+# setup notes).
+#
+# Usage (from the repo root):
+#   cp docker/testserver.env.example docker/testserver.env
+#   # edit docker/testserver.env: set passwords, KOLIBRI_DATA_DIR, etc.
+#   docker compose -f docker/docker-compose.testserver.yml --env-file docker/testserver.env up -d --build
+
+services:
+  db:
+    image: postgres:13
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${KOLIBRI_DATABASE_NAME:-kolibri}
+      POSTGRES_USER: ${KOLIBRI_DATABASE_USER:-kolibri}
+      POSTGRES_PASSWORD: ${KOLIBRI_DATABASE_PASSWORD:?set KOLIBRI_DATABASE_PASSWORD in testserver.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  kolibri:
+    build:
+      context: ..
+      dockerfile: docker/testserver.dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      KOLIBRI_HOME: /kolibrihome
+      KOLIBRI_HTTP_PORT: "8080"
+      KOLIBRI_LANG: ${KOLIBRI_LANG:-en}
+      KOLIBRI_RUN_MODE: testserver
+      KOLIBRI_DATABASE_ENGINE: postgres
+      KOLIBRI_DATABASE_NAME: ${KOLIBRI_DATABASE_NAME:-kolibri}
+      KOLIBRI_DATABASE_USER: ${KOLIBRI_DATABASE_USER:-kolibri}
+      KOLIBRI_DATABASE_PASSWORD: ${KOLIBRI_DATABASE_PASSWORD:?set KOLIBRI_DATABASE_PASSWORD in testserver.env}
+      KOLIBRI_DATABASE_HOST: db
+      KOLIBRI_DATABASE_PORT: "5432"
+      # Optional first-boot automation (see docker/entrypoint.py). Leave unset
+      # to land on Kolibri's normal setup wizard instead.
+      # KOLIBRI_PROVISIONDEVICE_FACILITY: "Test Facility"
+      # KOLIBRI_PROVISIONDEVICE_SUPERUSERNAME: devowner
+      # KOLIBRI_PROVISIONDEVICE_SUPERUSERPASSWORD: admin123
+    ports:
+      - "${KOLIBRI_HTTP_PORT:-8080}:8080"
+    volumes:
+      - kolibrihome:/kolibrihome
+      # Content packs imported via kolibri_helper_scripts/channel_setup/import_channels.sh
+      # live on the host here and are bind-mounted at the same path the scripts default to.
+      - ${KOLIBRI_DATA_DIR:-/opt/KOLIBRI_DATA}:/opt/KOLIBRI_DATA
+      # kolibri_helper_scripts checkout on the host, mounted so it can be run via
+      # `docker compose exec kolibri ...` without baking it into the image.
+      - ${KOLIBRI_HELPER_SCRIPTS_DIR:-../../kolibri_helper_scripts}:/kolibri_helper_scripts
+
+volumes:
+  pgdata:
+  kolibrihome:

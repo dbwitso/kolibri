@@ -8,6 +8,7 @@ docker/mnt/
 # other docker files
 docker-whl.cid
 docker-whl.iid
+docker/testserver.env
 
 # C extensions
 *.so
