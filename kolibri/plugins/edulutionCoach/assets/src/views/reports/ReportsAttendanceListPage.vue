@@ -28,13 +28,38 @@
           />
         </div>
 
+        <div class="filter-row">
+          <KButton
+            appearance="basic-link"
+            :text="dateRangeLabel"
+            @click="showDateRangeModal = true"
+          />
+          <KButton
+            v-if="dateRangeStart || dateRangeEnd"
+            appearance="basic-link"
+            :text="$tr('clearDateRangeAction')"
+            @click="clearDateRange"
+          />
+        </div>
+        <KDateRange
+          v-if="showDateRangeModal"
+          :firstAllowedDate="firstAllowedDate"
+          :lastAllowedDate="lastAllowedDate"
+          :submitText="coreString('continueAction')"
+          :cancelText="coreString('cancelAction')"
+          :title="$tr('selectDateRangeTitle')"
+          @cancel="showDateRangeModal = false"
+          @submit="onDateRangeSubmit"
+        />
+
         <CoreTable :emptyMessage="emptyMessage">
           <template #headers>
             <th>{{ coachString('usernameLabel') }}</th>
             <th>{{ coachString('fullnameLabel') }}</th>
             <th>{{ coachString('statusLabel') }}</th>
             <th>{{ coachString('lastLoggedInLabel') }}</th>
-            
+            <th>{{ $tr('hoursWatchedLabel') }}</th>
+            <th>{{ $tr('hoursLoggedInLabel') }}</th>
           </template>
           <template #tbody>
             <transition-group
@@ -86,12 +111,18 @@
                 <td>
                   <KOptionalText
                     :text="
-                      tableRow.lastInteractionTimestamp ? 
-                        $formatDate(tableRow.lastInteractionTimestamp, 
+                      tableRow.lastInteractionTimestamp ?
+                        $formatDate(tableRow.lastInteractionTimestamp,
                                     { weekday: 'short',month: 'short',
-                                      day: 'numeric',year: 'numeric' }) 
+                                      day: 'numeric',year: 'numeric' })
                         : '-'"
                   />
+                </td>
+                <td>
+                  <TimeDuration :seconds="watchTimeMap[tableRow.id] || 0" />
+                </td>
+                <td>
+                  <TimeDuration :seconds="sessionTimeMap[tableRow.id] || 0" />
                 </td>
               </tr>
             </transition-group>
@@ -106,6 +137,7 @@
 
 <script>
 
+  import { now } from 'kolibri.utils.serverClock';
   import FilterTextbox from 'kolibri.coreVue.components.FilterTextbox';
   import commonCoach from '../common';
   import { REPORTS_TABS_ID, ReportsTabs } from '../../constants/tabsConstants';
@@ -122,10 +154,13 @@
     mixins: [commonCoach],
     data() {
       return {
-        filter: '',
+        filter: {},
         REPORTS_TABS_ID,
         ReportsTabs,
         filterInput: '',
+        showDateRangeModal: false,
+        firstAllowedDate: null,
+        lastAllowedDate: now(),
       };
     },
     computed: {
@@ -149,6 +184,12 @@
           },
         ];
       },
+      dateRangeLabel() {
+        if (this.dateRangeStart && this.dateRangeEnd) {
+          return `${this.dateRangeStart} - ${this.dateRangeEnd}`;
+        }
+        return this.$tr('selectDateRangeAction');
+      },
       table() {
         let sorted = this.learners.map(l => ({
           ...l,
@@ -171,11 +212,45 @@
         return sorted;
       },
     },
+    methods: {
+      onDateRangeSubmit(dates) {
+        const startDate = new Date(dates.start.setHours(12, 0, 0, 0)).toISOString().split('T')[0];
+        const endDate = new Date(dates.end.setHours(12, 0, 0, 0)).toISOString().split('T')[0];
+        this.showDateRangeModal = false;
+        this.$store.dispatch('classSummary/setActivityDateRange', { startDate, endDate });
+      },
+      clearDateRange() {
+        this.$store.dispatch('classSummary/setActivityDateRange', {
+          startDate: null,
+          endDate: null,
+        });
+      },
+    },
     $trs: {
       printLabel: {
         message: '{className} Learners',
         context:
           "Title that displays on a printed copy of the 'Reports' > 'Learners' page. This shows if the user uses the 'Print' option by clicking on the printer icon.",
+      },
+      hoursWatchedLabel: {
+        message: 'Time spent watching',
+        context: "Column header showing a learner's total content watch time.",
+      },
+      hoursLoggedInLabel: {
+        message: 'Time logged in',
+        context: "Column header showing a learner's total logged-in session time.",
+      },
+      selectDateRangeAction: {
+        message: 'Filter by date',
+        context: 'Link that opens a date range picker to filter the activity report.',
+      },
+      selectDateRangeTitle: {
+        message: 'Select a date range',
+        context: 'Title of the date range picker modal on the activity report.',
+      },
+      clearDateRangeAction: {
+        message: 'Clear dates',
+        context: 'Link that clears the selected date range filter on the activity report.',
       },
     },
   };
