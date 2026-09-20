@@ -5,6 +5,7 @@ from django.db.models import Max
 from django.db.models import OuterRef
 from django.db.models import Q
 from django.db.models import Subquery
+from django.db.models import Sum
 from django.db.utils import OperationalError
 from django.shortcuts import get_object_or_404
 from le_utils.constants import content_kinds
@@ -20,6 +21,7 @@ from kolibri.core.auth.models import FacilityUser
 from kolibri.core.content.models import ContentNode
 from kolibri.core.exams.models import Exam
 from kolibri.core.assessment.models import ExamAssessment
+from kolibri.core.lessons.models import LearnerResourceLock
 from kolibri.core.lessons.models import Lesson
 from kolibri.core.logger import models as logger_models
 from kolibri.core.logger.utils.quiz import annotate_response_summary
@@ -499,7 +501,6 @@ from django.utils import timezone
 from kolibri.deployment.default.settings import base
 from datetime import timedelta
 from kolibri.core.logger.models import UserSessionLog
-from kolibri.core.auth.models import Classroom
 
 
 def get_active_learners(classroom):
@@ -517,15 +518,156 @@ def get_active_learners(classroom):
         learners_info = UserSessionLog.objects.filter(user__username__in=classroom_members)\
             .values('user__username').annotate(Max('last_interaction_timestamp')).all()
 
-        session_objects = UserSessionLog.objects.filter(last_interaction_timestamp__gte=last_20_minutes).all()
-        active_learners_in_class = \
-            filter(lambda session: session.user.is_member_of(Classroom.objects.get(name=classroom)),
-                   session_objects)
-        active_learners = set(map(lambda user_session: user_session.user.id, active_learners_in_class))
+        session_objects = UserSessionLog.objects.filter(
+            last_interaction_timestamp__gte=last_20_minutes,
+            user__username__in=classroom_members,
+        ).all()
+        active_learners = set(map(lambda user_session: user_session.user.id, session_objects))
     except OperationalError:
         print('Database unavailable, impossible to retrieve users and sessions info')
 
     return active_learners, learners_info
+
+
+def get_learner_watch_time(classroom, start_date=None, end_date=None):
+    """
+    Returns a dict of {learner_id: total_seconds_watched} for the members
+    of the given classroom, optionally restricted to activity ending within
+    [start_date, end_date].
+    """
+    queryset = logger_models.ContentSummaryLog.objects.filter(
+        user__in=classroom.get_members()
+    )
+    if start_date:
+        queryset = queryset.filter(end_timestamp__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(end_timestamp__lte=end_date)
+    return dict(
+        queryset.values("user_id")
+        .annotate(total_seconds=Sum("time_spent"))
+        .values_list("user_id", "total_seconds")
+    )
+
+
+def get_learner_session_time(classroom, start_date=None, end_date=None):
+    """
+    Returns a dict of {learner_id: total_seconds_logged_in} for the members
+    of the given classroom, optionally restricted to sessions with activity
+    within [start_date, end_date]. Each UserSessionLog row's duration is
+    approximated as (last_interaction_timestamp - start_timestamp); a new
+    row is started whenever the gap since the last heartbeat exceeds 5
+    minutes (see UserSessionLog.update_log), so summing durations across
+    rows does not double-count idle time.
+    """
+    queryset = logger_models.UserSessionLog.objects.filter(
+        user__in=classroom.get_members(), last_interaction_timestamp__isnull=False
+    )
+    if start_date:
+        queryset = queryset.filter(last_interaction_timestamp__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(last_interaction_timestamp__lte=end_date)
+    # Computed in Python rather than via a DB-side duration aggregate:
+    # Django's temporal-subtraction-then-re-aggregate pattern
+    # (annotate(duration=F(a) - F(b)).values(...).annotate(Sum('duration')))
+    # is not reliably supported across the sqlite/postgres backends this
+    # app targets on this Django version.
+    totals = {}
+    for user_id, start, end in queryset.values_list(
+        "user_id", "start_timestamp", "last_interaction_timestamp"
+    ):
+        totals[user_id] = totals.get(user_id, 0) + (end - start).total_seconds()
+    return totals
+
+
+def get_learner_resource_locks(classroom):
+    """
+    Returns a list of {lesson_id, user_id, contentnode_id} for every
+    per-learner completion lock (see LearnerResourceLock) held by a member
+    of this classroom, so the coach UI can offer to unlock them.
+    """
+    return list(
+        LearnerResourceLock.objects.filter(
+            user__in=classroom.get_members(), lesson__collection=classroom
+        ).values("lesson_id", "user_id", "contentnode_id")
+    )
+
+
+def _last_activity_sort_key(row):
+    # Converting to a float epoch (rather than comparing datetimes directly)
+    # sidesteps aware/naive datetime comparison errors, and lets a learner
+    # with no activity at all (None) sort as "oldest" via the 0 fallback.
+    last_activity = row["last_activity"]
+    return last_activity.timestamp() if last_activity else 0
+
+
+def get_learner_overview(
+    learners_data,
+    content_learner_status,
+    exam_learner_status,
+    learner_resource_locks,
+    active_learners,
+):
+    """
+    Rolls up per-learner signals - needing help on something, having an
+    auto-locked resource, and recent/current activity - that are otherwise
+    only visible by drilling into individual lesson and quiz reports one at
+    a time, so a coach can see at a glance which learners currently need
+    attention.
+
+    Returns a list of one dict per learner:
+        {
+            "learner_id": ...,
+            "help_needed_count": int,
+            "locked_resources_count": int,
+            "last_activity": datetime or None,
+            "currently_active": bool,
+        }
+    sorted with the learners most likely to need attention first: needing
+    help on something, then having a locked resource, then most recently
+    active.
+    """
+    overview_by_learner = {
+        learner["id"]: {
+            "learner_id": learner["id"],
+            "help_needed_count": 0,
+            "locked_resources_count": 0,
+            "last_activity": None,
+            "currently_active": learner["id"] in active_learners,
+        }
+        for learner in learners_data
+    }
+
+    def _note_status_entry(entry):
+        row = overview_by_learner.get(entry.get("learner_id"))
+        if row is None:
+            # Learner not in this classroom (e.g. content shared across
+            # classes) - not relevant to this classroom's overview.
+            return
+        if entry.get("status") == HELP_NEEDED:
+            row["help_needed_count"] += 1
+        last_activity = entry.get("last_activity")
+        if last_activity and (
+            row["last_activity"] is None or last_activity > row["last_activity"]
+        ):
+            row["last_activity"] = last_activity
+
+    for entry in content_learner_status:
+        _note_status_entry(entry)
+    for entry in exam_learner_status:
+        _note_status_entry(entry)
+
+    for lock in learner_resource_locks:
+        row = overview_by_learner.get(lock.get("user_id"))
+        if row is not None:
+            row["locked_resources_count"] += 1
+
+    overview = list(overview_by_learner.values())
+    # Stable sorts applied least-important-key-first, so the final order
+    # prioritizes: needs help > has a locked resource > most recently active.
+    overview.sort(key=_last_activity_sort_key, reverse=True)
+    overview.sort(key=lambda row: row["locked_resources_count"], reverse=True)
+    overview.sort(key=lambda row: row["help_needed_count"], reverse=True)
+    return overview
 
 
 class ClassSummaryPermissions(permissions.BasePermission):
@@ -551,6 +693,11 @@ class ClassSummaryViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk):
         classroom = get_object_or_404(auth_models.Classroom, id=pk)
         active_learners = get_active_learners(classroom)
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+        watch_time_by_learner = get_learner_watch_time(classroom, start_date, end_date)
+        session_time_by_learner = get_learner_session_time(classroom, start_date, end_date)
+        learner_resource_locks = get_learner_resource_locks(classroom)
         query_learners = FacilityUser.objects.filter(memberships__collection=classroom)
         query_lesson = Lesson.objects.filter(collection=pk)
         query_exams = Exam.objects.filter(collection=pk)
@@ -608,6 +755,10 @@ class ClassSummaryViewSet(viewsets.ViewSet):
             )
 
         learners_data = serialize_users(query_learners)
+        exam_learner_status = serialize_coach_assigned_quiz_status(query_exams)
+        content_learner_status = content_status_serializer(
+            lesson_data, learners_data, classroom
+        )
 
         output = {
             "id": pk,
@@ -624,14 +775,22 @@ class ClassSummaryViewSet(viewsets.ViewSet):
                 classroom.get_individual_learners_group()
             ),
             "exams": exam_data,
-            "exam_learner_status": serialize_coach_assigned_quiz_status(query_exams),
+            "exam_learner_status": exam_learner_status,
             "content": content,
-            "content_learner_status": content_status_serializer(
-                lesson_data, learners_data, classroom
-            ),
+            "content_learner_status": content_learner_status,
             "lessons": lesson_data,
             "active_learners": active_learners[0],
             "learners_info": active_learners[1],
+            "watch_time_by_learner": watch_time_by_learner,
+            "session_time_by_learner": session_time_by_learner,
+            "learner_resource_locks": learner_resource_locks,
+            "learner_overview": get_learner_overview(
+                learners_data,
+                content_learner_status,
+                exam_learner_status,
+                learner_resource_locks,
+                active_learners[0],
+            ),
         }
 
         return Response(output)
