@@ -538,9 +538,6 @@
         }
       },
       deviceIsAndroid() {
-        if (this.deviceInfo === undefined) {
-          showDeviceInfoPage(store);
-        }
         if (this.getDeviceOS === undefined) {
           return true;
         }
@@ -566,6 +563,7 @@
     created() {
       this.setDeviceURLs();
       this.setFreeSpace();
+      showDeviceInfoPage(store);
     },
     beforeMount() {
       this.getDeviceSettings()
