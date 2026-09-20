@@ -1,5 +1,6 @@
 export const REPORTS_TABS_ID = 'coachReports';
 export const ReportsTabs = {
+  OVERVIEW: 'tabOverview',
   LESSONS: 'tabLessons',
   QUIZZES: 'tabQuizzes',
   GROUPS: 'tabGroups',

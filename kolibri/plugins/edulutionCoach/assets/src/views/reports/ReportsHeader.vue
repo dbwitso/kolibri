@@ -69,15 +69,20 @@
       tabs() {
         return [
           {
+            id: ReportsTabs.OVERVIEW,
+            label: this.$tr('overviewLabel'),
+            to: this.classRoute('ReportsClassOverviewPage'),
+          },
+          {
             id: ReportsTabs.LESSONS,
             label: this.coreString('lessonsLabel'),
             to: this.classRoute('ReportsLessonListPage'),
           },
-          {
+/*          {
             id: ReportsTabs.QUIZZES,
             label: this.coreString('quizzesLabel'),
             to: this.classRoute('ReportsQuizListPage'),
-          },
+          },*/
 /*          {
             id: ReportsTabs.ASSESSMENT,
             label: this.coreString('assessmentLabel'),
@@ -114,6 +119,10 @@
       }
     },
     $trs: {
+      overviewLabel: {
+        message: 'Overview',
+        context: "Label for the tab showing a class-wide summary of learners who may need attention.",
+      },
       description: {
         message: 'View reports for your learners and class materials',
         context: "Description for the 'Reports' section.",
