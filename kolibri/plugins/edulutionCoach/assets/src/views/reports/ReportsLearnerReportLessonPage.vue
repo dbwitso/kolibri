@@ -54,6 +54,7 @@
           <th>{{ coachString('titleLabel') }}</th>
           <th>{{ coreString('progressLabel') }}</th>
           <th>{{ coreString('timeSpentLabel') }}</th>
+          <th>{{ $tr('lockedColumnLabel') }}</th>
         </template>
         <template #tbody>
           <transition-group
@@ -82,6 +83,15 @@
               </td>
               <td>
                 <TimeDuration v-if="tableRow.statusObj" :seconds="showTime(tableRow)" />
+                <KEmptyPlaceholder v-else />
+              </td>
+              <td>
+                <KButton
+                  v-if="isLockedForLearner(tableRow.node_id)"
+                  appearance="basic-link"
+                  :text="$tr('unlockAction')"
+                  @click="unlock(tableRow.node_id)"
+                />
                 <KEmptyPlaceholder v-else />
               </td>
             </tr>
@@ -140,6 +150,21 @@
       },
     },
     methods: {
+      isLockedForLearner(contentnodeId) {
+        return this.learnerResourceLocksList.some(
+          lock =>
+            lock.lesson_id === this.lesson.id &&
+            lock.user_id === this.learner.id &&
+            lock.contentnode_id === contentnodeId
+        );
+      },
+      unlock(contentnodeId) {
+        this.$store.dispatch('classSummary/unlockLearnerResource', {
+          lessonId: this.lesson.id,
+          userId: this.learner.id,
+          contentnodeId,
+        });
+      },
       showLink(tableRow) {
         return (
           tableRow.kind === this.ContentNodeKinds.EXERCISE &&
@@ -166,6 +191,16 @@
         });
 
         exporter.export(this.table);
+      },
+    },
+    $trs: {
+      lockedColumnLabel: {
+        message: 'Locked',
+        context: "Column header showing whether a learner's completed resource is locked.",
+      },
+      unlockAction: {
+        message: 'Unlock',
+        context: "Button that removes a learner's completion lock on a resource.",
       },
     },
   };
