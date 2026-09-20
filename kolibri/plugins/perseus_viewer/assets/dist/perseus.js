@@ -57212,9 +57212,9 @@ var PassageRef = React.createClass({
         var lineRangeOutput;
         lineRangeOutput = lineRange ? lineRange[0] === lineRange[1] ? $_({
             lineNumber: lineRange[0]
-        }, "line %(lineNumber)s") : $_({
+        }, "line { lineNumber }") : $_({
             lineRange: lineRange[0] + EN_DASH + lineRange[1]
-        }, "lines %(lineRange)s") : $_({
+        }, "lines { lineRange }") : $_({
             lineRange: "?" + EN_DASH + "?"
         }, "lines { lineRange }");
         var summaryOutput;
@@ -92400,17 +92400,17 @@ var ChoiceIcon = function(_React$Component3) {
         if (this.props.checked) {
             if (this.props.showCorrectness) return this.props.correct ? i18n._("(Choice { letter }, Checked, Correct)", {
                 letter: letter
-            }) : i18n._("(Choice %(letter)s, Checked, Incorrect)", {
+            }) : i18n._("(Choice { letter }, Checked, Incorrect)", {
                 letter: letter
             });
-            return i18n._("(Choice %(letter)s, Checked)", {
+            return i18n._("(Choice { letter }, Checked)", {
                 letter: letter
             });
         }
-        if (this.props.showCorrectness && this.props.correct) return i18n._("(Choice %(letter)s, Correct Answer)", {
+        if (this.props.showCorrectness && this.props.correct) return i18n._("(Choice { letter }, Correct Answer)", {
             letter: letter
         });
-        return i18n._("(Choice %(letter)s)", {
+        return i18n._("(Choice { letter })", {
             letter: letter
         });
     };
@@ -102902,11 +102902,11 @@ var Passage = function(_React$Component2) {
         var firstQuestionNumber = parseState.firstQuestionRef;
         var firstSentenceRef = parseState.firstSentenceRef;
         var instructions = "";
-        firstQuestionNumber && (instructions += i18n._("The symbol { questionSymbol } indicates that question %(questionNumber)s references this portion of the passage.", {
+        firstQuestionNumber && (instructions += i18n._("The symbol { questionSymbol } indicates that question { questionNumber } references this portion of the passage.", {
             questionSymbol: "[[" + firstQuestionNumber + "]]",
             questionNumber: firstQuestionNumber
         }));
-        firstSentenceRef && (instructions += i18n._(" The symbol %(sentenceSymbol)s indicates that the following sentence is referenced in a question.", {
+        firstSentenceRef && (instructions += i18n._(" The symbol { sentenceSymbol } indicates that the following sentence is referenced in a question.", {
             sentenceSymbol: "[" + firstSentenceRef + "]"
         }));
         var parsedInstructions = PassageMarkdown.parse(instructions);
@@ -104278,7 +104278,7 @@ var rules = {
                 className: "perseus-sr-only"
             }, $_({
                 number: node.content
-            }, "[Circle marker %(number)s]")), node.space ? " " : null ];
+            }, "[Circle marker { number }]")), node.space ? " " : null ];
         }
     },
     squareBracketRef: {
@@ -104301,7 +104301,7 @@ var rules = {
                 className: "perseus-sr-only"
             }, $_({
                 number: node.content
-            }, "[Sentence %(number)s]")), node.space ? " " : null ];
+            }, "[Sentence { number }]")), node.space ? " " : null ];
         }
     },
     highlight: {
@@ -106875,7 +106875,7 @@ var Transformations = {
                 }), React.createElement(TeX, null, "\\rangle") ];
                 return React.createElement("div", null, $_({
                     vector: vector
-                }, "Translation by %(vector)s"));
+                }, "Translation by { vector }"));
             },
             value: function value() {
                 return {
@@ -106929,7 +106929,7 @@ var Transformations = {
             return $_({
                 degrees: texFromAngleDeg(transform.angleDeg),
                 point: texFromPoint(transform.center)
-            }, "Rotation by %(degrees)s about %(point)s");
+            }, "Rotation by { degrees } about { point }");
         },
         Input: React.createClass({
             displayName: "Input",
@@ -106997,11 +106997,11 @@ var Transformations = {
                     onBlur: _.partial(this.props.onBlur, "angleDeg"),
                     keypadElement: this.props.keypadElement
                 }), DEGREE_SIGN ];
-                // I18N: %(point)s must come before %(degrees)s in this phrase
+                // I18N: { point } must come before { degrees } in this phrase
                 var text = $_({
                     point: point,
                     degrees: degrees
-                }, "Rotation about %(point)s by %(degrees)s");
+                }, "Rotation about { point } by { degrees }");
                 return React.createElement("div", null, text);
             },
             value: function value() {
@@ -107062,7 +107062,7 @@ var Transformations = {
             return $_({
                 point1: texFromPoint(point1),
                 point2: texFromPoint(point2)
-            }, "Reflection over the line from %(point1)s to %(point2)s");
+            }, "Reflection over the line from { point1 } to { point2 }");
         },
         Input: React.createClass({
             displayName: "Input",
@@ -107115,7 +107115,7 @@ var Transformations = {
                 return React.createElement("div", null, $_({
                     point1: point1,
                     point2: point2
-                }, "Reflection over the line from %(point1)s to %(point2)s"));
+                }, "Reflection over the line from { point1 } to { point2 }"));
             },
             changePoint: function changePoint(i, j, val, cb) {
                 var _this5 = this;
@@ -107177,7 +107177,7 @@ var Transformations = {
             return $_({
                 scale: scaleString,
                 point: texFromPoint(transform.center)
-            }, "Dilation of scale %(scale)s about %(point)s");
+            }, "Dilation of scale { scale } about { point }");
         },
         Input: React.createClass({
             displayName: "Input",
@@ -107248,7 +107248,7 @@ var Transformations = {
                 return React.createElement("div", null, $_({
                     point: point,
                     scale: scale
-                }, "Dilation about %(point)s by %(scale)s"));
+                }, "Dilation about { point } by { scale }"));
             },
             value: function value() {
                 return {
@@ -108379,7 +108379,7 @@ _.extend(Transformer, {
             }));
             if (!isUsed) return {
                 type: "invalid",
-                message: i18n._("Your transformation must use a %(type)s.", {
+                message: i18n._("Your transformation must use a { type }.", {
                     type: Transformations[type].lowerNounName
                 })
             };
