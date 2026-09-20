@@ -12,7 +12,7 @@ const sideNavConfig = {
     return coreStrings.$tr('profileLabel');
   },
   icon: 'person',
-  role: UserKinds.LEARNER,
+  role: UserKinds.COACH,
   priority: 10,
   section: NavComponentSections.ACCOUNT,
 };

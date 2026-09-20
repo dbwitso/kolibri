@@ -44,6 +44,8 @@ export default [
     beforeEnter(to, from, next) {
       if (!store.getters.isUserLoggedIn) {
         redirectBrowser();
+      } else if (store.getters.isCoach) {
+        next({ name: 'PROFILE' });
       } else {
         preload(next);
       }

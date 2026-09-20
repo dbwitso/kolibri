@@ -1,5 +1,6 @@
 import { createMachine, assign, send } from 'xstate';
 import { FacilityUserResource } from 'kolibri.resources';
+import { UserKinds } from 'kolibri.coreVue.vuex.constants';
 import {
   default as remoteFacilityUserData,
   remoteFacilityUsers,
@@ -283,7 +284,7 @@ const states = {
   isAdmin: {
     always: [
       {
-        cond: context => context.role === 'superuser',
+        cond: context => context.role === UserKinds.SUPERUSER,
         target: 'fetchSourceFacilityUsers',
       },
       {
@@ -336,7 +337,7 @@ const states = {
           const facilityHasAnotherSuperUser =
             context.sourceFacilityUsers.length > 0 &&
             context.sourceFacilityUsers.find(u => u.id !== context.userId && u.is_superuser);
-          return context.role === 'superuser' && !facilityHasAnotherSuperUser;
+          return context.role === UserKinds.SUPERUSER && !facilityHasAnotherSuperUser;
         },
         target: 'chooseAdmin',
       },

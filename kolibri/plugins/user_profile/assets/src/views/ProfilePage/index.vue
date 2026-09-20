@@ -12,7 +12,7 @@
             <h1>{{ coreString('profileLabel') }}</h1>
           </KGridItem>
           <KGridItem
-            v-if="!isLearnerOnlyImport"
+            v-if="!isLearnerOnlyImport && !isCoach"
             :layout8="{ span: 4, alignment: 'right' }"
             :layout12="{ span: 6, alignment: 'right' }"
           >
@@ -107,7 +107,7 @@
             </td>
           </tr>
 
-          <tr v-if="!isLearnerOnlyImport && canEditPassword">
+          <tr v-if="!isLearnerOnlyImport && !isCoach && canEditPassword">
             <th>{{ coreString('passwordLabel') }}</th>
             <td>
               <KButton
@@ -158,7 +158,7 @@
 
 
         <ChangeUserPasswordModal
-          v-if="!isLearnerOnlyImport && showPasswordModal"
+          v-if="!isLearnerOnlyImport && !isCoach && showPasswordModal"
           @cancel="showPasswordModal = false"
         />
 
@@ -278,7 +278,7 @@
         const learner_can_edit =
           this.facilityConfig.learner_can_edit_password &&
           !this.facilityConfig.learner_can_login_with_no_password;
-        return this.isSuperuser || this.isCoach || learner_can_edit;
+        return this.isSuperuser || learner_can_edit;
       },
     },
     created() {

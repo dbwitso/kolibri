@@ -35,6 +35,7 @@
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
   import BottomAppBar from 'kolibri.coreVue.components.BottomAppBar';
   import { FacilityUserResource } from 'kolibri.resources';
+  import { UserKinds } from 'kolibri.coreVue.vuex.constants';
   import commonProfileStrings from '../commonProfileStrings';
 
   export default {
@@ -70,7 +71,7 @@
         });
       },
       secondLine() {
-        if (this.role === 'learner' || this.lastUserOnDevice) return '';
+        if (this.role === UserKinds.LEARNER || this.lastUserOnDevice) return '';
         return this.$tr('changeFacilityInfoLine2', {
           role: this.role,
           facility: this.targetFacility.name,
