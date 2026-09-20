@@ -5,7 +5,7 @@
       v-for="(item, index) in itemsToRender"
       :key="`attempt-${item.originalIndex}`"
       class="attempt"
-      :style="styleForIndex(index, item.originalIndex)"
+      :style="{ ...dotSizeStyle, ...styleForIndex(index, item.originalIndex) }"
     >
       <transition name="fade">
         <AnswerIcon :answer="item.answer" />
@@ -15,7 +15,7 @@
       v-for="i in numSpaces"
       :key="`placeholder-${i}`"
       class="placeholder"
-      :style="{ borderBottom: `2px solid ${$themeTokens.annotation}` }"
+      :style="{ ...dotSizeStyle, borderBottom: `2px solid ${$themeTokens.annotation}` }"
     >
     </div>
   </div>
@@ -50,8 +50,28 @@
           return arr.every(val => ['right', 'wrong', 'hint', 'rectified'].includes(val));
         },
       },
+      // Shrinks the dots so the whole row of attempts reliably fits on one
+      // line next to the Check button on narrow screens, instead of
+      // overflowing and needing to be scrolled to see.
+      compact: {
+        type: Boolean,
+        default: false,
+      },
     },
     computed: {
+      dotSize() {
+        return this.compact ? 18 : 30;
+      },
+      dotMargin() {
+        return this.compact ? 2 : 4;
+      },
+      dotSizeStyle() {
+        return {
+          width: `${this.dotSize}px`,
+          height: `${this.dotSize}px`,
+          margin: `${this.dotMargin}px`,
+        };
+      },
       numItemsToRender() {
         if (this.waitingForAttempt) {
           return this.numSpaces;
@@ -72,7 +92,7 @@
     },
     methods: {
       styleForIndex(visualIndex, originalIndex) {
-        const ANSWER_WIDTH = 4 + 30 + 4;
+        const ANSWER_WIDTH = this.dotMargin * 2 + this.dotSize;
         let xPos = ANSWER_WIDTH * (this.log.length - 1 - originalIndex);
         if (this.waitingForAttempt) {
           xPos += ANSWER_WIDTH;
@@ -94,22 +114,17 @@
 
 <style lang="scss" scoped>
 
-  $size: 30px;
-  $margin: 4px;
-
+  // No overflow-x: auto here on purpose - dot size is shrunk responsively
+  // (see the compact prop) so the row fits without ever needing to scroll.
   .exercise-attempts {
     position: relative;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
     white-space: nowrap;
   }
 
   .attempt,
   .placeholder {
     display: inline-block;
-    width: $size;
-    height: $size;
-    margin: $margin;
   }
 
   .attempt {

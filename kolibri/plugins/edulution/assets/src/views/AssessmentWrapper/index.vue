@@ -76,30 +76,20 @@ oriented data synchronization.
         />
       </div>
 
-      <BottomAppBar
-        class="attempts-container"
-        :class="{ 'mobile': windowIsSmall }"
-      >
-        <div class="overall-status" :style="{ color: $themeTokens.text }">
-          <KIcon
-            icon="mastered"
-            :color="success ? $themeTokens.mastered : $themePalette.grey.v_200"
-          />
-          <div class="overall-status-text">
-            <span v-if="success" class="completed" :style="{ color: $themeTokens.annotation }">
-              {{ coreString('completedLabel') }}
-            </span>
-            <span>
-              {{ $tr('goal', { count: totalCorrectRequiredM }) }}
-            </span>
-          </div>
-        </div>
-        <div class="table">
+      <BottomAppBar class="attempts-container">
+        <div
+          class="accent-bar"
+          :style="{
+            backgroundColor: $themeBrand.primary.v_50,
+            borderTopColor: $themeTokens.primary,
+          }"
+        >
           <div class="row">
             <div class="left">
               <transition mode="out-in">
                 <KButton
                   v-if="!complete"
+                  class="check-btn"
                   appearance="raised-button"
                   :text="$tr('check')"
                   :primary="true"
@@ -109,6 +99,7 @@ oriented data synchronization.
                 />
                 <KButton
                   v-else
+                  class="check-btn"
                   appearance="raised-button"
                   :text="$tr('next')"
                   :primary="true"
@@ -117,11 +108,29 @@ oriented data synchronization.
               </transition>
             </div>
 
+            <div class="middle overall-status" :style="{ color: $themeTokens.text }">
+              <KIcon
+                icon="mastered"
+                :color="success ? $themeTokens.mastered : $themePalette.grey.v_200"
+              />
+              <div class="overall-status-text">
+                <span v-if="success" class="completed" :style="{ color: $themeTokens.annotation }">
+                  {{ coreString('completedLabel') }}
+                </span>
+                <span>
+                  {{ isStreakGoal
+                    ? $tr('goalStreak', { count: totalCorrectRequiredM })
+                    : $tr('goal', { count: totalCorrectRequiredM }) }}
+                </span>
+              </div>
+            </div>
+
             <div class="right">
               <ExerciseAttempts
                 :waitingForAttempt="firstAttemptAtQuestion || itemError"
                 :numSpaces="attemptsWindowN"
                 :log="recentAttempts"
+                :compact="windowIsSmall"
               />
               <p class="current-status">
                 {{ currentStatus }}
@@ -300,6 +309,13 @@ oriented data synchronization.
       },
       attemptsWindowN() {
         return this.mOfNMasteryModel.n;
+      },
+      // True for the common "X correct in a row" mastery models, where the
+      // attempt window equals the number required - i.e. a wrong answer
+      // truly resets the count, rather than just using up one of a larger
+      // window of allowed attempts.
+      isStreakGoal() {
+        return this.totalCorrectRequiredM === this.attemptsWindowN;
       },
       success() {
         return this.mastered;
@@ -482,6 +498,11 @@ oriented data synchronization.
         context:
           'Message that indicates to the learner how many correct answers they need to give in order to master the given topic, and for the exercise to be considered completed.',
       },
+      goalStreak: {
+        message: 'Get {count, number, integer} {count, plural, other {right in a row}}!',
+        context:
+          "Message shown instead of 'goal' when the mastery model requires the correct answers to be consecutive (a wrong answer resets the count), so learners understand the rule rather than just the number.",
+      },
       tryAgain: {
         message: 'Try again',
         context:
@@ -492,9 +513,9 @@ oriented data synchronization.
         context: "An answer that the learner got right will be marked as 'Correct!'.",
       },
       check: {
-        message: 'Check',
+        message: 'Submit',
         context:
-          "Learners use the 'CHECK' button when doing an exercise to check if they have answered a question correctly or not.",
+          "Learners use the 'SUBMIT' button when doing an exercise to check if they have answered a question correctly or not.",
       },
       next: {
         message: 'Next',
@@ -540,45 +561,78 @@ oriented data synchronization.
 
   @import '~kolibri-design-system/lib/styles/definitions';
 
+  // Height is min-height + auto (never a hard 'height') so the bar always
+  // grows to fit the Check button and attempt marks instead of clipping
+  // them or forcing a scrollbar when space is tight.
   .attempts-container {
-    height: 111px;
+    height: auto;
+    min-height: 72px;
     text-align: left;
   }
 
+  // Gives the action bar its own distinct, brand-colored background/border
+  // (colors set inline via theme tokens) so it reads as a strip separate
+  // from the page instead of blending in when the question above it is short.
+  .accent-bar {
+    height: 100%;
+    padding: 0 16px 0 12px;
+    border-top: 4px solid transparent;
+  }
+
   .overall-status {
-    margin-bottom: 8px;
-    margin-left: 12px;
+    display: flex;
+    align-items: center;
   }
 
   .overall-status-text {
     display: inline-block;
     margin-left: 4px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .completed {
     font-size: 12px;
   }
 
-  .table {
-    display: table;
-    padding-left: 12px;
-  }
-
+  // Everything - button, mastery goal, and attempt marks - stays on a
+  // single line: the button keeps its natural size, the other two areas
+  // shrink and ellipsize (never scroll or wrap) to share whatever room
+  // is left, so nothing needs to be scrolled to be seen.
   .row {
-    display: table-row;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    height: 100%;
+    gap: 16px;
   }
 
-  .left,
-  .right {
-    display: table-cell;
-    vertical-align: top;
+  .left {
+    flex: 0 0 auto;
+  }
+
+  .middle {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .right {
-    width: 99%;
-    padding-left: 8px;
-    overflow-x: auto;
-    overflow-y: hidden;
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  // Bigger tap target than the default button so it reads as *the* thing
+  // to do next, without a fixed min-width that would fight the attempts
+  // area for space on narrow screens.
+  .check-btn {
+    min-height: 44px;
+    font-size: 15px;
   }
 
   // checkAnswer btn animation
@@ -613,7 +667,10 @@ oriented data synchronization.
 
   .current-status {
     height: 18px;
-    margin: 0;
+    margin: 0 0 0 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .hint-btn-container {
