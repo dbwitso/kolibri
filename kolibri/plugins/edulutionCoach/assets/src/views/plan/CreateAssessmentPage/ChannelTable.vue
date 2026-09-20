@@ -95,9 +95,8 @@ export default {
    tableData : {
     immediate : true,
     handler(newVal) {
-      newVal.forEach(item => {
- 
-         const newExercises = item.exercises.map(exercise => {
+      this.assessmentArray = newVal.map(item => {
+        const newExercises = item.exercises.map(exercise => {
           const maxCount = item.question_sources.filter(i => i.exercise_id === exercise.id).length
           return{
             id: exercise.id,
@@ -108,15 +107,15 @@ export default {
           }
         });
 
-        this.assessmentArray.push({
+        return {
           id: item.id,
           title: item.title,
           limit: item.question_count,
           errorMessage: '',
           exercises: newExercises,
           value:item.question_count
-        })
-        });
+        };
+      });
     }
    }
 
