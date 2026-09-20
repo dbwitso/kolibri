@@ -1,61 +1,91 @@
 <template>
-
-  <div class="bar-wrapper">
-    <div class="bar" :style="barStyleActive"></div>
+  <div :class="progressClassName">
+    <KLabeledIcon nowrap>
+      <template #icon>
+        <CoachStatusIcon ref="status" :icon="icon" />
+      </template>
+      {{ text }}
+    </KLabeledIcon>
+    <KTooltip
+      v-if="false"
+      reference="status"
+      placement="top"
+      :refs="$refs"
+    >
+      {{ tooltip }}
+    </KTooltip>
   </div>
-  
+
 </template>
-  
-  
-<script>
 
-  import activeLearnersTallyMixin from './activeLearnersTallyMixin';
 
-  export default {
-    name: 'ActiveLearnerSummaryBar',
-    mixins: [activeLearnersTallyMixin],
-    computed: {
-      barStyleActive() {
-        const widthRatio = this.active / this.total;
-        return {
-          width: `${Math.ceil(100 * widthRatio)}%`,
-          backgroundColor: this.backgroundColor(),
-        };
+  <script>
+    import CoachStatusIcon from './CoachStatusIcon';
+    import { statusStringsMixin, isValidVerb } from './statusStrings';
+
+    export default {
+      name: 'ActiveLearnerCount',
+      components: {
+        CoachStatusIcon,
       },
-    },
-    methods: {
-      backgroundColor() {
-        if (this.active == this.total) {
-          return this.$coreStatusCorrect;
-        } else {
-          return this.$coreStatusProgress;
+      mixins: [statusStringsMixin],
+      props: {
+        verb: {
+          type: String,
+          required: true,
+          validator: isValidVerb,
+        },
+        icon: {
+          type: String,
+          required: true,
+        },
+      },
+      computed: {
+        strings() {
+          return this.activeLearnersTranslators[this.verb];
+        },
+        // Unlike ActiveLearnersRatio, there's no total to fall back to at the
+        // lowest verbosity, so 'count'/'countShort' cover every verbosity level.
+        text() {
+          return this.strings.$tr(this.shorten('count', this.verbosityNumber), {
+            count: this.count,
+          });
+        },
+        tooltip() {
+          return this.strings.$tr('count', {
+            count: this.count,
+          });
+        },
+        // 'count' holds whichever tally this instance is displaying (active
+        // or notActive), but "full attendance" always means active === total,
+        // regardless of which one is shown here - so normalize back to the
+        // active count before deciding the color.
+        activeCount() {
+          return this.verb === 'notActive' ? this.total - this.count : this.count;
+        },
+        progressClassName() {
+          if (this.activeCount === this.total) {
+            return 'progress-completed'
+          }
+          if (this.activeCount < this.total) {
+            return 'progress-inprogress'
+          }
+          return 'progress-default'
         }
       },
-    },
-  };
+    };
 
-</script>
+  </script>
 
 
-<style lang="scss" scoped>
-
-  @import '~kolibri-design-system/lib/styles/definitions';
-
-  .bar-wrapper {
-    position: relative;
-    width: 100%;
-    height: 16px;
-    overflow: hidden;
-    background-color: #dedede;
-    border-radius: $radius;
+  <style lang="scss" scoped>
+  .progress-inprogress svg {
+    fill: orange !important;
   }
-
-  .bar {
-    position: absolute;
-    height: 100%;
-    margin-right: auto;
-    opacity: 0.75;
-    transition: all $core-time ease;
+  .progress-completed svg {
+    fill: green !important;
+  }
+  .progress-default svg {
+    fill: #071d49 !important
   }
 </style>
-  

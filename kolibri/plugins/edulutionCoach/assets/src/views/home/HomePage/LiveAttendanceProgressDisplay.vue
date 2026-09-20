@@ -9,7 +9,7 @@
 
     <KGridItem :layout12="{ span: 3 }" alignment="left">
       <div class="context">
-        <Recipients :groupNames="groupNames" />
+        <Recipients :groupNames="groupNames" :hasAssignments="true" />
       </div>
     </KGridItem>
 
