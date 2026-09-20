@@ -2,13 +2,16 @@
 beautifulsoup4==4.8.2
 factory-boy==2.7.0  # pyup: ignore - Needs an update, called 'faker' now
 fake-factory==0.5.7  # pyup: ignore Needs an update
-coverage==4.5.1
+coverage==6.5.0  # 4.5.1's setup.py fails to build under Python 3.9+ (removed html.parser API)
 mock==2.0.0
 mixer==6.0.1
-pytest==3.7.1 # pyup: < 4.0.0
-pytest-cov==2.5.1
-pytest-django==3.3.3
-pytest-env==0.6.2
-pytest-pythonpath==0.7.2
+# pytest 3.7.1 could not even start under Python 3.10 (its assertion-rewriter
+# predates ast.alias gaining lineno/col_offset in 3.10). Bumped the whole
+# pytest toolchain together; pytest-pythonpath is dropped since pytest's own
+# native `pythonpath` ini option (>= 7.0) replaces it - see pytest.ini.
+pytest==7.4.4
+pytest-cov==4.1.0
+pytest-django==4.5.2
+pytest-env==1.1.1
 attrs==19.1.0
 parameterized==0.8.1
