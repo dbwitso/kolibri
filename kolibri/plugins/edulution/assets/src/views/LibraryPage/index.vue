@@ -502,20 +502,18 @@
       };
     },
     computed: {
-      ...mapGetters(['isLearner', 'getUserKind', 'currentUserId']),
+      ...mapGetters(['isLearner', 'getUserKind', 'currentUserId', 'facilityConfig']),
       enableSearch(){
-        /*TODO: Add facilityconfig and use that instead of hardcoded value*/
         if(this.isLearner){
-          return false;
+          return this.facilityConfig.learner_can_search_content;
         }
+        return true;
       },
       showRecentContent(){
-        /*TODO: Add facilityconfig and use that instead of hardcoded value*/
-        return false;
+        return this.facilityConfig.learner_can_view_recent_content;
       },
       showOtherLibraries(){
-        /*TODO: Add facilityconfig and use that instead of hardcoded value*/
-        return false
+        return this.facilityConfig.learner_can_view_other_libraries;
       },
       allowDownloads() {
         return this.canAddDownloads && Boolean(this.deviceId);

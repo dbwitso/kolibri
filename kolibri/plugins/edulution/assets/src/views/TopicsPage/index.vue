@@ -532,12 +532,12 @@
       };
     },
     computed: {
-      ...mapGetters(['isLearner']),
+      ...mapGetters(['isLearner', 'facilityConfig']),
       enableSearch(){
-        /*TODO: Add facilityconfig and use that instead of hardcoded value*/
         if(this.isLearner){
-          return false;
+          return this.facilityConfig.learner_can_search_content;
         }
+        return true;
       },
       topicKnowledgemap() {
         return lodashGet(this.$store.state.examViewer.knowledgemap, 'results', []).find(d => d.id === this.topic?.id )?.children || [];
