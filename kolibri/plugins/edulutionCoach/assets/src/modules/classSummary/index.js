@@ -96,6 +96,41 @@ function defaultState() {
      * ]
      */
     activeLearnersMap: [],
+    /*
+     * learnersInfo := [
+     *   { user__username, last_interaction_timestamp__max }, ...
+     * ]
+     */
+    learnersInfo: [],
+    /*
+     * watchTimeMap := { [learner_id]: total_seconds_watched }
+     */
+    watchTimeMap: {},
+    /*
+     * sessionTimeMap := { [learner_id]: total_seconds_logged_in }
+     */
+    sessionTimeMap: {},
+    /*
+     * learnerResourceLocksList := [
+     *   { lesson_id, user_id, contentnode_id }, ...
+     * ]
+     */
+    learnerResourceLocksList: [],
+    /*
+     * learnerOverviewList := [
+     *   {
+     *     learner_id, help_needed_count, locked_resources_count,
+     *     last_activity, currently_active
+     *   }, ...
+     * ]
+     * Sorted by the API with the learners most likely to need attention
+     * first. See class_summary_api.get_learner_overview.
+     */
+    learnerOverviewList: [],
+    // date range (ISO date strings, e.g. '2026-09-01') used to scope
+    // watchTimeMap/sessionTimeMap; null means unbounded
+    dateRangeStart: null,
+    dateRangeEnd: null,
     assessmentMap: {},
     /*
      * assessmentLearnerStatusMap := {
@@ -386,6 +421,18 @@ export default {
       return state.learnersInfo;
     },
     /*
+     * watchTime := { [learner_id]: total_seconds_watched }
+     */
+    watchTime(state) {
+      return state.watchTimeMap;
+    },
+    /*
+     * sessionTime := { [learner_id]: total_seconds_logged_in }
+     */
+    sessionTime(state) {
+      return state.sessionTimeMap;
+    },
+    /*
      * assessments := [
      *   {
      *     id,
@@ -413,6 +460,26 @@ export default {
         Object.values(state.examLearnerStatusMap).map(learnerMap => Object.values(learnerMap))
       );
     },
+    /*
+     * learnerOverview := [
+     *   {
+     *     learner_id, name, username, help_needed_count,
+     *     locked_resources_count, last_activity, currently_active
+     *   }, ...
+     * ]
+     * Same order as learnerOverviewList (most-needs-attention-first),
+     * joined with the learner's name/username for display.
+     */
+    learnerOverview(state) {
+      return state.learnerOverviewList.map(row => {
+        const learner = state.learnerMap[row.learner_id] || {};
+        return {
+          ...row,
+          name: learner.name,
+          username: learner.username,
+        };
+      });
+    },
   },
   mutations: {
     SET_STATE(state, { summary, assessmentGroups }) {
@@ -428,6 +495,10 @@ export default {
       for (const status of summary.content_learner_status) {
         // convert dates
         status.last_activity = status.last_activity ? new Date(status.last_activity) : null;
+      }
+      for (const row of summary.learner_overview || []) {
+        // convert dates
+        row.last_activity = row.last_activity ? new Date(row.last_activity) : null;
       }
       const patchedSummaryContent = summary.content.map(item => {
         const obj = Object.assign({}, item);
@@ -450,8 +521,16 @@ export default {
         lessonMap: _mapLessons(summary.lessons),
         activeLearnersMap: summary.active_learners,
         learnersInfo: summary.learners_info,
+        watchTimeMap: summary.watch_time_by_learner || {},
+        sessionTimeMap: summary.session_time_by_learner || {},
+        learnerResourceLocksList: summary.learner_resource_locks || [],
+        learnerOverviewList: summary.learner_overview || [],
         assessmentGroupMap,
       });
+    },
+    SET_DATE_RANGE(state, { startDate, endDate }) {
+      state.dateRangeStart = startDate || null;
+      state.dateRangeEnd = endDate || null;
     },
     CREATE_ITEM(state, { map, id, object }) {
       state[map] = {
@@ -541,7 +620,14 @@ export default {
   actions: {
     updateWithNotifications,
     loadClassSummary(store, classId) {
-      return ClassSummaryResource.fetchModel({ id: classId, force: true })
+      const getParams = {};
+      if (store.state.dateRangeStart) {
+        getParams.start_date = store.state.dateRangeStart;
+      }
+      if (store.state.dateRangeEnd) {
+        getParams.end_date = store.state.dateRangeEnd;
+      }
+      return ClassSummaryResource.fetchModel({ id: classId, force: true, getParams })
         .then(async (summary) => {
           const assessmentGroups = await AssessmentGroupResource.fetchModel({ id: classId, force: true })
           store.commit('SET_STATE', { summary, assessmentGroups });
@@ -593,6 +679,15 @@ export default {
     // },
     refreshClassSummary(store) {
       return store.dispatch('loadClassSummary', store.state.id);
+    },
+    setActivityDateRange(store, { startDate, endDate }) {
+      store.commit('SET_DATE_RANGE', { startDate, endDate });
+      return store.dispatch('refreshClassSummary');
+    },
+    unlockLearnerResource(store, { lessonId, userId, contentnodeId }) {
+      return LessonResource.unlockLearnerResource(lessonId, { userId, contentnodeId }).then(
+        () => store.dispatch('refreshClassSummary')
+      );
     },
   },
 };

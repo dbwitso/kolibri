@@ -75,7 +75,15 @@ export default {
   mixins: [coachStringsMixin],
   computed: {
     ...mapGetters(['isAdmin', 'isCoach', 'isSuperuser']),
-    ...mapState('classSummary', { classId: 'id', className: 'name' }),
+    ...mapState('classSummary', { className: 'name' }),
+    classId() {
+      // classSummary.id is populated by an independent async fetch (initClassInfo)
+      // that resolves after the route has already changed, so it briefly lags behind
+      // the classId route param (which is always synchronously correct for any page
+      // reached via a class-scoped route). Prefer the route param, and only fall back
+      // to the Vuex-cached value for components rendered outside a classId route.
+      return this.$route.params.classId || this.$store.state.classSummary.id;
+    },
     ...mapState('classSummary', [
       'adHocGroupsMap',
       'coachMap',
@@ -88,6 +96,11 @@ export default {
       'contentLearnerStatusMap',
       'lessonMap',
       'activeLearnersMap',
+      'watchTimeMap',
+      'sessionTimeMap',
+      'learnerResourceLocksList',
+      'dateRangeStart',
+      'dateRangeEnd',
       'assessmentMap',
       'assessmentLearnerStatusMap',
       'assessmentGroupMap',
@@ -130,6 +143,7 @@ export default {
       'activeLearners',
       'getActiveLearners',
       'learnersInfo',
+      'learnerOverview',
     ]),
     userIsAuthorized() {
       if (this.isSuperuser) {
