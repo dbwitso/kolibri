@@ -44,7 +44,7 @@
               <td>
                 <KRouterLink
                   :text="classObj.name"
-                  :to="$router.getRoute('HomePage', { classId: classObj.id })"
+                  :to="$router.getRoute(subtopicName, { classId: classObj.id })"
                   icon="classes"
                 />
               </td>
@@ -151,6 +151,9 @@
       },
       channels() {
         return this.$store.state.core.channels.list;
+      },
+      subtopicName() {
+        return this.$route.params.subtopicName || 'HomePage';
       },
     },
     methods: {

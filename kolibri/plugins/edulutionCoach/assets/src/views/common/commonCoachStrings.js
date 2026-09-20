@@ -69,6 +69,10 @@ const coachStrings = createTranslator('CommonCoachStrings', {
     message: 'All assessments',
     context: 'Navigation link that takes coach back to the list of all the assessments they manage.',
   },
+  attendanceLabel: {
+    message: 'Attendance',
+    context: 'Attendance label.',
+  },
   avgScoreLabel: {
     message: 'Average score',
     context:
