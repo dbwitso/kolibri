@@ -82,7 +82,7 @@ export default {
       // the classId route param (which is always synchronously correct for any page
       // reached via a class-scoped route). Prefer the route param, and only fall back
       // to the Vuex-cached value for components rendered outside a classId route.
-      return this.$route.params.classId || this.$store.state.classSummary.id;
+      return (this.$route && this.$route.params.classId) || this.$store.state.classSummary.id;
     },
     ...mapState('classSummary', [
       'adHocGroupsMap',

@@ -3,6 +3,14 @@ import { mount } from '@vue/test-utils';
 import makeStore from '../makeStore';
 import AssignmentDetailsModal from '../../src/views/plan/assignments/AssignmentDetailsModal';
 
+// IndividualLearnerSelector (mounted via RecipientSelector) fetches another
+// classroom's summary whenever its targetClassId prop differs from its own
+// mixin-derived classId; this real network resource isn't otherwise mocked
+// in this component-level test.
+jest.mock('../../src/apiResources/classSummary', () => ({
+  fetchModel: jest.fn(() => Promise.resolve({ groups: [], learners: [] })),
+}));
+
 // HACK to avoid having to mock this property's dependancies on vuex and vue router
 AssignmentDetailsModal.computed.titleIsInvalidText = () => '';
 
