@@ -4,9 +4,12 @@ ENV KOLIBRI_RUN_MODE=testserver
 ENV KOLIBRI_HTTP_PORT=8080
 
 # psql is needed inside the container to run kolibri_helper_scripts'
-# SQL-based tools (channel_module, channel_subscriptions, set_coach_content)
+# SQL-based tools (channel_module, channel_subscriptions, set_coach_content).
+# libpq-dev (pg_config) is needed below to build psycopg2-binary from source,
+# since its pinned version predates prebuilt wheels for this base image's
+# Python version.
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY docker/entrypoint.py /docker/entrypoint.py
