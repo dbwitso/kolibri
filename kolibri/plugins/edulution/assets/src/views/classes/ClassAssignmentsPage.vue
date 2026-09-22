@@ -110,14 +110,16 @@
     computed: {
       ...mapGetters(['facilityConfig', 'isLearner', 'isCoach']),
       canViewLessons() {
-        if(this.isLearner || this.isCoach){
-          return this.facilityConfig.learner_can_view_lessons;
+        if (this.isLearner || this.isCoach) {
+          return Boolean(this.facilityConfig.learner_can_view_lessons);
         }
+        return true;
       },
       canViewQuizzes() {
-        if(this.isLearner || this.isCoach){
-          return this.facilityConfig.learner_can_view_quizzes;
+        if (this.isLearner || this.isCoach) {
+          return Boolean(this.facilityConfig.learner_can_view_quizzes);
         }
+        return true;
       },
 
       breadcrumbs() {
