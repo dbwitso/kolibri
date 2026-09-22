@@ -398,6 +398,7 @@ describe(`useLearnerResources`, () => {
           },
           contentNodeId: 'resource-1-in-progress',
           lessonId: 'class-1-active-lesson-1',
+          locked: false,
           progress: 0.2,
         },
         {
@@ -407,6 +408,7 @@ describe(`useLearnerResources`, () => {
           },
           contentNodeId: 'resource-3-in-progress',
           lessonId: 'class-1-active-lesson-1',
+          locked: false,
           progress: 0.74,
         },
         {
@@ -416,6 +418,7 @@ describe(`useLearnerResources`, () => {
           },
           contentNodeId: 'resource-1-in-progress',
           lessonId: 'class-1-active-lesson-2',
+          locked: false,
           progress: 0.2,
         },
         {
@@ -425,6 +428,7 @@ describe(`useLearnerResources`, () => {
           },
           contentNodeId: 'resource-5-in-progress',
           lessonId: 'class-1-active-lesson-2',
+          locked: false,
           progress: 0.04,
         },
         {
@@ -434,6 +438,7 @@ describe(`useLearnerResources`, () => {
           },
           contentNodeId: 'resource-6-in-progress',
           lessonId: 'class-2-active-lesson-1',
+          locked: false,
           progress: 0.1,
         },
         {
@@ -443,6 +448,7 @@ describe(`useLearnerResources`, () => {
           },
           contentNodeId: 'resource-1-in-progress',
           lessonId: 'class-2-active-lesson-1',
+          locked: false,
           progress: 0.2,
         },
       ]);
