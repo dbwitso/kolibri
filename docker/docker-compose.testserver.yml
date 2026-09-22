@@ -20,6 +20,11 @@ services:
       POSTGRES_PASSWORD: ${KOLIBRI_DATABASE_PASSWORD:?set KOLIBRI_DATABASE_PASSWORD in testserver.env}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KOLIBRI_DATABASE_USER:-kolibri} -d ${KOLIBRI_DATABASE_NAME:-kolibri}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   kolibri:
     build:
@@ -27,7 +32,13 @@ services:
       dockerfile: docker/testserver.dockerfile
     restart: unless-stopped
     depends_on:
-      - db
+      # A bare `depends_on: [db]` only waits for the db container to start,
+      # not for Postgres to actually be ready to accept connections - on a
+      # fresh volume (first boot, or after wiping pgdata) Postgres takes a
+      # few seconds to initialize, and Kolibri would otherwise race it and
+      # crash-loop until it wins that race by luck.
+      db:
+        condition: service_healthy
     environment:
       KOLIBRI_HOME: /kolibrihome
       KOLIBRI_HTTP_PORT: "8080"
