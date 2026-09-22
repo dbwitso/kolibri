@@ -2,6 +2,7 @@
 
   <KPageContainer :topMargin="0">
     <ExamReport
+      v-if="learner && exam && exam.id"
       :contentId="exam.id"
       :title="exam.title"
       :userName="learner.name"
@@ -14,6 +15,7 @@
       :navigateTo="navigateTo"
       :questions="questions"
     />
+    <KCircularLoader v-else />
   </KPageContainer>
 
 </template>
