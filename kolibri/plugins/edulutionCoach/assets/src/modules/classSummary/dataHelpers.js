@@ -77,14 +77,16 @@ export default {
    */
   getRecipientNamesForExam(state) {
     return function(exam) {
-      const adHocLearners = this.getAdHocLearners(exam.assignments).map(
-        learnerId => state.learnerMap[learnerId].name
-      );
+      const adHocLearners = this.getAdHocLearners(exam.assignments)
+        .map(learnerId => state.learnerMap[learnerId])
+        .filter(Boolean)
+        .map(learner => learner.name);
       const recipientsForGroups =
         exam.groups.length || !adHocLearners.length ? this.getLearnersForGroups(exam.groups) : [];
-      const learnersInSelectedGroups = recipientsForGroups.map(
-        learnerId => state.learnerMap[learnerId].name
-      );
+      const learnersInSelectedGroups = recipientsForGroups
+        .map(learnerId => state.learnerMap[learnerId])
+        .filter(Boolean)
+        .map(learner => learner.name);
       return this.getGroupNames(exam.groups).concat(
         adHocLearners.filter(name => !learnersInSelectedGroups.includes(name))
       );
@@ -159,13 +161,16 @@ export default {
       const recipientsForGroups = fullLesson.groups.length
         ? this.getLearnersForGroups(fullLesson.groups)
         : [];
-      const learnersInSelectedGroups = recipientsForGroups.map(
-        learnerId => state.learnerMap[learnerId].name
-      );
+      const learnersInSelectedGroups = recipientsForGroups
+        .map(learnerId => state.learnerMap[learnerId])
+        .filter(Boolean)
+        .map(learner => learner.name);
       return this.getGroupNames(fullLesson.groups).concat(
         lesson.learner_ids
-          .map(learnerId => state.learnerMap[learnerId].name)
-          .filter(learner => !learnersInSelectedGroups.includes(learner))
+          .map(learnerId => state.learnerMap[learnerId])
+          .filter(Boolean)
+          .map(learner => learner.name)
+          .filter(learnerName => !learnersInSelectedGroups.includes(learnerName))
       );
     };
   },
