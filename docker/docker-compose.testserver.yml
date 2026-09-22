@@ -39,6 +39,11 @@ services:
       KOLIBRI_DATABASE_PASSWORD: ${KOLIBRI_DATABASE_PASSWORD:?set KOLIBRI_DATABASE_PASSWORD in testserver.env}
       KOLIBRI_DATABASE_HOST: db
       KOLIBRI_DATABASE_PORT: "5432"
+      # Zip/HTML5 content (flexbooks, epubs, h5p) is served by Kolibri from a
+      # second, sandboxed origin server that otherwise binds to a random free
+      # port on every start - impossible to publish reliably. Pin it so it can
+      # be published below like the main HTTP port.
+      KOLIBRI_ZIP_CONTENT_PORT: "8081"
       # Optional first-boot automation (see docker/entrypoint.py). Leave unset
       # to land on Kolibri's normal setup wizard instead.
       # KOLIBRI_PROVISIONDEVICE_FACILITY: "Test Facility"
@@ -46,6 +51,7 @@ services:
       # KOLIBRI_PROVISIONDEVICE_SUPERUSERPASSWORD: admin123
     ports:
       - "${KOLIBRI_HTTP_PORT:-8080}:8080"
+      - "8081:8081"
     volumes:
       - kolibrihome:/kolibrihome
       # Content packs imported via kolibri_helper_scripts/channel_setup/import_channels.sh
