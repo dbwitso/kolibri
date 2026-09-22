@@ -314,6 +314,8 @@ docker-devserver: docker-envlist
 			-v $$PWD/docker/mnt/kolibrihome:/kolibrihome \
 			-p 8000:8000 \
 			-p 3000:3000 \
+			-p 8001:8001 \
+			--env KOLIBRI_ZIP_CONTENT_PORT=8001 \
 			--env-file ./docker/env.list \
 			"learningequality/kolibridev" \
 			yarn run devserver
@@ -323,6 +325,13 @@ docker-devserver: docker-envlist
 # KOLIBRI_HOME (database, content, logs) is bind-mounted from docker/mnt/kolibrihome
 # so it survives container rebuilds/removal. To reset to a clean install, delete that
 # directory before running this target again.
+
+# Zip/HTML5 content (flexbooks, epubs, h5p, etc.) is served by Kolibri from a second,
+# sandboxed origin server. By default it binds to a random free port each start (for
+# iframe-sandboxing security), which Docker can't publish in advance since it isn't
+# known until the container is already running - resulting in the browser getting
+# "connection refused" for any such content. KOLIBRI_ZIP_CONTENT_PORT above pins it to
+# a fixed, known port so it can be published like the other two.
 
 # Optionally add --env KOLIBRI_PROVISIONDEVICE_FACILITY="Dev Server" to skip setup wizard
 
