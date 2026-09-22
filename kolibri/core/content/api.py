@@ -118,7 +118,18 @@ def metadata_cache(view_func):
         url_key = hashlib.md5(
             force_bytes(iri_to_uri(request.build_absolute_uri()))
         ).hexdigest()
-        cache_key = "{}:{}".format(key_prefix, url_key)
+        # Responses for a restricted learner are filtered down to just their
+        # own assigned content (see InternalContentNodeMixin.get_queryset), so
+        # the cache key must vary per such user - otherwise this cache, which
+        # is otherwise safely shared across everyone since content metadata is
+        # normally identical for all users, would serve one restricted
+        # learner's personally-filtered response to a different learner, or
+        # keep serving a stale empty response after new content is assigned.
+        user = getattr(request, "user", None)
+        if user is not None and is_restricted_learner(user):
+            cache_key = "{}:{}:{}".format(key_prefix, url_key, user.id)
+        else:
+            cache_key = "{}:{}".format(key_prefix, url_key)
         response = cache.get(cache_key)
         if response is None:
             response = view_func(*args, **kwargs)
