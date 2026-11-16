@@ -1,6 +1,6 @@
 {
   "name": "kolibri-root",
-  "version": "0.12.0-dev.1",
+  "version": "0.16.0",
   "description": "Development utilities for Kolibri",
   "workspaces": [
     "packages/*",
