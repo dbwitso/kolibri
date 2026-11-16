@@ -73,7 +73,7 @@
                 :value="true"
               />
             </fieldset>
-            
+          
             <fieldset v-if="coachIsSelected" class="coach-selector">
               <KRadioButton
                 v-model="classCoachIsSelected"
@@ -92,10 +92,9 @@
             </fieldset>
           </template>
 
-          <IdentifierTextbox
-            :value.sync="idNumber"
-            :disabled="formDisabled"
-          />
+          <!-- The ID number holds the MindSpark UID used to match learners on
+               import, so it is not shown in this fork.
+               The stored value is still loaded and saved back unchanged. -->
 
           <BirthYearSelect
             :value.sync="birthYear"
@@ -156,7 +155,6 @@
   import FullNameTextbox from 'kolibri.coreVue.components.FullNameTextbox';
   import UsernameTextbox from 'kolibri.coreVue.components.UsernameTextbox';
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
-  import IdentifierTextbox from './IdentifierTextbox';
 
   export default {
     name: 'UserEditPage',
@@ -170,7 +168,6 @@
       ImmersivePage,
       FullNameTextbox,
       GenderSelect,
-      IdentifierTextbox,
       UsernameTextbox,
       UserTypeDisplay,
     },

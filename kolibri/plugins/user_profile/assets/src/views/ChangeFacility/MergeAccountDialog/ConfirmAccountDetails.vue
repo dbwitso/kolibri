@@ -23,14 +23,8 @@
         </td>
       </tr>
 
-      <tr>
-        <th>
-          {{ coreString('identifierLabel') }}
-        </th>
-        <td dir="auto" data-test="idnumber">
-          {{ cleanValue(targetAccount.id_number) }}
-        </td>
-      </tr>
+      <!-- The ID number holds the MindSpark UID used to match learners on
+           import, so it is not shown in this fork. -->
       <tr>
         <th>
           {{ coreString('genderLabel') }}

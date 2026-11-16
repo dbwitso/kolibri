@@ -41,15 +41,9 @@
         <th v-if="$scopedSlots.info">
           {{ infoDescriptor }}
         </th>
+        <!-- The ID number holds the MindSpark UID used to match learners on
+             import, so it is not shown in this fork. -->
         <template v-if="showDemographicInfo">
-          <th>
-            <span>{{ coreString('identifierLabel') }}</span>
-            <CoreInfoIcon
-              class="tooltip"
-              :iconAriaLabel="coreString('identifierAriaLabel')"
-              :tooltipText="coreString('identifierTooltip')"
-            />
-          </th>
           <th>
             {{ coreString('genderLabel') }}
           </th>
@@ -171,11 +165,6 @@
               <slot name="activeStatus" :user="user"></slot>
             </td>
             <template v-if="showDemographicInfo">
-              <td class="id-col">
-                <KOptionalText
-                  :text="user.id_number ? user.id_number : ''"
-                />
-              </td>
               <td>
                 <GenderDisplayText :gender="user.gender" />
               </td>
@@ -204,7 +193,6 @@
   import UserTypeDisplay from 'kolibri.coreVue.components.UserTypeDisplay';
   import CoreTable from 'kolibri.coreVue.components.CoreTable';
   import difference from 'lodash/difference';
-  import CoreInfoIcon from 'kolibri.coreVue.components.CoreInfoIcon';
   import GenderDisplayText from 'kolibri.coreVue.components.GenderDisplayText';
   import BirthYearDisplayText from 'kolibri.coreVue.components.BirthYearDisplayText';
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
@@ -213,7 +201,6 @@
   export default {
     name: 'UserTable',
     components: {
-      CoreInfoIcon,
       CoreTable,
       UserTypeDisplay,
       GenderDisplayText,
@@ -338,8 +325,8 @@
       },
       activeStatus: {
         message: 'Active Status',
-        context: "Indicates the user's status"
-      }
+        context: "Indicates the user's status",
+      },
     },
   };
 

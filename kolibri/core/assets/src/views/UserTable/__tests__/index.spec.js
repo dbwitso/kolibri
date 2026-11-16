@@ -67,6 +67,16 @@ describe(`UserTable`, () => {
     expect(getRoleHeader(wrapper).classes()).toContain('visuallyhidden');
   });
 
+  describe(`with demographic info shown`, () => {
+    it(`never shows the ID number (MindSpark UID)`, () => {
+      const users = TEST_USERS.map(u => Object.assign({}, u, { id_number: 'MS-UID-12345' }));
+      const wrapper = makeWrapper({ propsData: { users, showDemographicInfo: true } });
+      expect(wrapper.text()).not.toContain('MS-UID-12345');
+      expect(wrapper.text()).not.toContain('Identifier');
+      expect(wrapper.text()).toContain('Gender');
+    });
+  });
+
   describe(`when there are no users`, () => {
     it(`shows an empty message when it's provided`, () => {
       const wrapper = makeWrapper({ propsData: { emptyMessage: 'There are no users' } });

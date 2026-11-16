@@ -65,10 +65,8 @@
             />
           </fieldset>
 
-          <IdentifierTextbox
-            :value.sync="idNumber"
-            :disabled="busy"
-          />
+          <!-- The ID number holds the MindSpark UID used to match learners on
+               import, so it is not shown in this fork. -->
 
           <BirthYearSelect
             :value.sync="birthYear"
@@ -122,7 +120,6 @@
   import UsernameTextbox from 'kolibri.coreVue.components.UsernameTextbox';
   import PasswordTextbox from 'kolibri.coreVue.components.PasswordTextbox';
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
-  import IdentifierTextbox from './IdentifierTextbox';
 
   const { NOT_SPECIFIED } = DemographicConstants;
 
@@ -139,7 +136,6 @@
       UsernameTextbox,
       FullNameTextbox,
       PasswordTextbox,
-      IdentifierTextbox,
       ImmersivePage,
     },
     mixins: [commonCoreStrings],

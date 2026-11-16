@@ -56,7 +56,9 @@ describe(`ChangeFacility/MergeAccountDialog/ConfirmAccountDetails`, () => {
     expect(wrapper.find('[data-test="fullname"]').text()).toEqual('Test Full Name');
     expect(wrapper.find('[data-test="username"]').text()).toEqual('remote_username');
     expect(wrapper.find('[data-test="gender"]').text()).toEqual('Female');
-    expect(wrapper.find('[data-test="idnumber"]').text()).toEqual('test id');
+    // The ID number (MindSpark UID) is not shown in this fork.
+    expect(wrapper.find('[data-test="idnumber"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('test id');
     expect(wrapper.find('[data-test="birthyear"]').text()).toEqual('1989');
   });
 
