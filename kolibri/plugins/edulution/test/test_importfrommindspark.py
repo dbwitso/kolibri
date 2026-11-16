@@ -42,7 +42,23 @@ class MindSparkUsernameTestCase(SimpleTestCase):
         self.assertEqual(len(kolibri_username("x." * 40)), 30)
 
 
-class ImportFromMindSparkTestCase(TestCase):
+def product(uid, upid, category="student", grade=None, section="A"):
+    """A MindSpark UserProducts document (invented)."""
+    doc = {"UID": uid, "UPID": upid, "category": category}
+    if grade is not None:
+        doc["batch"] = {
+            "ActiveBatch": {"grade": grade, "section": section, "groupID": "G" + grade},
+            "InActiveBatch": {"grade": None, "section": None},
+        }
+    return doc
+
+
+class MindSparkFixture(TestCase):
+    """Invented MindSpark data and helpers; no tests of its own."""
+
+    # When True, build_class_map is replaced by self.class_map.
+    patch_class_map = True
+
     def setUp(self):
         self.facility = Facility.objects.create(name="Centre")
         dataset = self.facility.dataset
@@ -64,6 +80,7 @@ class ImportFromMindSparkTestCase(TestCase):
                     "dateOfBirth": "2014-05-01",
                     "status": "A",
                     "orgID": "ORG1",
+                    "products": {"Mindspark": {"UPID": "UPID-A"}},
                 },
                 {
                     "UID": UID_B,
@@ -72,6 +89,7 @@ class ImportFromMindSparkTestCase(TestCase):
                     "dateOfBirth": "",
                     "status": "A",
                     "orgID": "ORG1",
+                    "products": {"Mindspark": {"UPID": "UPID-B"}},
                 },
                 {
                     "UID": UID_STAFF,
@@ -88,6 +106,15 @@ class ImportFromMindSparkTestCase(TestCase):
                 {"UID": UID_STAFF, "username": "teacher.one"},
             ]
         )
+        self.um.UserProducts.insert_many(
+            [
+                # A also holds another product; only the MindSpark one counts.
+                product(UID_A, "UPID-OTHER", grade="9", section="Z"),
+                product(UID_A, "UPID-A", grade="7"),
+                product(UID_B, "UPID-B", grade="5"),
+                product(UID_STAFF, "UPID-S", category="teacher"),
+            ]
+        )
         self.class_map = {}
 
         patcher = mock.patch(MODULE + ".MongoClient", return_value=self.mongo)
@@ -99,11 +126,13 @@ class ImportFromMindSparkTestCase(TestCase):
         )
         ping.start()
         self.addCleanup(ping.stop)
-        class_patcher = mock.patch(
-            MODULE + ".build_class_map", side_effect=lambda um: dict(self.class_map)
-        )
-        class_patcher.start()
-        self.addCleanup(class_patcher.stop)
+        if self.patch_class_map:
+            class_patcher = mock.patch(
+                MODULE + ".build_class_map",
+                side_effect=lambda um, products=None: dict(self.class_map),
+            )
+            class_patcher.start()
+            self.addCleanup(class_patcher.stop)
 
     def run_import(self, *args):
         out = StringIO()
@@ -127,6 +156,10 @@ class ImportFromMindSparkTestCase(TestCase):
                 user=user, collection__kind="classroom"
             ).values_list("collection__name", flat=True)
         )
+
+
+class ImportFromMindSparkTestCase(MindSparkFixture):
+    """Learner create/update rules; classes come from self.class_map."""
 
     # ---------------------------------------------------------------- create
 
@@ -327,3 +360,88 @@ class ImportFromMindSparkTestCase(TestCase):
         finally:
             for p in patches:
                 p.stop()
+
+
+class RealClassMappingTestCase(MindSparkFixture):
+    """Classes and roles read from UserProducts, nothing mocked."""
+
+    patch_class_map = False
+
+    def test_classes_from_active_batch(self):
+        out = self.run_import()
+        self.assertEqual(self.classes_of(self.user(UID_A)), {"Grade 7 A"})
+        self.assertEqual(self.classes_of(self.user(UID_B)), {"Grade 5 A"})
+        self.assertEqual(
+            set(Classroom.objects.values_list("name", flat=True)),
+            {"Grade 7 A", "Grade 5 A"},
+        )
+        self.assertRegex(out, r"classes_created\s+2")
+
+    def test_uses_the_mindspark_product(self):
+        # The other product (grade 9, section Z) is ignored.
+        self.run_import()
+        self.assertFalse(Classroom.objects.filter(name="Grade 9 Z").exists())
+
+    def test_class_change_in_mindspark(self):
+        self.run_import()
+        self.um.UserProducts.update_one(
+            {"UPID": "UPID-A"}, {"$set": {"batch.ActiveBatch.grade": "6"}}
+        )
+        self.run_import()
+        self.assertEqual(self.classes_of(self.user(UID_A)), {"Grade 6 A"})
+
+    def test_rerun_adds_classes_to_learners_imported_without(self):
+        # Learners imported before the class link existed get their class.
+        with mock.patch(MODULE + ".build_class_map", return_value={}):
+            self.run_import()
+        self.assertEqual(self.classes_of(self.user(UID_A)), set())
+        self.run_import()
+        self.assertEqual(self.classes_of(self.user(UID_A)), {"Grade 7 A"})
+        self.assertEqual(FacilityUser.objects.count(), 2)
+
+    def test_no_active_batch_means_no_class(self):
+        self.um.UserProducts.update_one({"UPID": "UPID-B"}, {"$unset": {"batch": ""}})
+        out = self.run_import()
+        self.assertEqual(self.classes_of(self.user(UID_B)), set())
+        self.assertRegex(out, r"no_class_in_mindspark\s+1")
+
+    def test_teacher_role_skipped_whatever_the_username(self):
+        # A learner whose username contains "test" is imported (the old
+        # username pattern would have skipped her); a teacher is not.
+        self.auth.Authentication.update_one(
+            {"UID": UID_A}, {"$set": {"username": "testimony.kamona"}}
+        )
+        self.auth.Authentication.update_one(
+            {"UID": UID_STAFF}, {"$set": {"username": "mr.phiri"}}
+        )
+        out = self.run_import()
+        self.assertEqual(self.user(UID_A).username, "testimony.kamona")
+        self.assertFalse(FacilityUser.objects.filter(id_number=UID_STAFF).exists())
+        self.assertRegex(out, r"skipped_staff\s+1")
+
+    def test_staff_pattern_overrides_roles(self):
+        self.um.UserProducts.update_one(
+            {"UPID": "UPID-S"}, {"$set": {"category": "student"}}
+        )
+        self.run_import("--staff-pattern", r"^teacher\.")
+        self.assertFalse(FacilityUser.objects.filter(id_number=UID_STAFF).exists())
+        self.um.UserProducts.update_one(
+            {"UPID": "UPID-B"}, {"$set": {"category": "teacher"}}
+        )
+        self.run_import("--staff-pattern", r"^teacher\.")
+        self.assertTrue(FacilityUser.objects.filter(id_number=UID_B).exists())
+
+    def test_no_mindspark_product_skipped(self):
+        self.um.UserProducts.delete_many({"UID": UID_B})
+        out = self.run_import()
+        self.assertFalse(FacilityUser.objects.filter(id_number=UID_B).exists())
+        self.assertRegex(out, r"skipped_no_mindspark_product\s+1")
+
+    def test_staff_imported_earlier_is_listed_not_deleted(self):
+        FacilityUser.objects.create(
+            username="teacher.one", facility=self.facility, id_number=UID_STAFF
+        )
+        out = self.run_import()
+        self.assertIn("imported earlier as learners", out)
+        self.assertIn("  teacher.one", out)
+        self.assertTrue(FacilityUser.objects.filter(id_number=UID_STAFF).exists())

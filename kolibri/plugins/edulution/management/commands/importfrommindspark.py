@@ -22,6 +22,11 @@ Design notes
   and dots, max 30. Any other character becomes "_".
 - Passwords are not ported (MindSpark stores MD5). Use a facility with
   learner_can_login_with_no_password (the "formal" preset).
+- Class and role come from the learner's MindSpark product: the UserProducts
+  document whose UPID is UserDetails.products.Mindspark.UPID.
+  batch.ActiveBatch.grade/section give the class ("Grade 7 A"), and
+  category ("student" or "teacher") the role. Only "student" accounts are
+  imported, unless --staff-pattern is given, which then decides instead.
 
 Requires pymongo in the Kolibri image.
 """
@@ -56,8 +61,8 @@ GENDER_MAP = {
     "female": FEMALE,
 }
 
-# Interim staff filter until the MindSpark role link is confirmed.
-DEFAULT_STAFF_PATTERN = r"(coach|head|admin|test|teacher)"
+# UserProducts.category of accounts that are imported as learners.
+LEARNER_CATEGORY = "student"
 
 USERNAME_MAX = 30
 FULL_NAME_MAX = 120
@@ -98,16 +103,67 @@ def full_name(details):
     return name[:FULL_NAME_MAX]
 
 
-def build_class_map(um_db):
-    """
-    Return {mindspark_UID: kolibri_class_name}.
+def _mindspark_upids(um_db):
+    """{UID: UPID of the learner's MindSpark product} from UserDetails."""
+    upids = {}
+    for d in um_db.UserDetails.find({}, {"UID": 1, "products.Mindspark.UPID": 1}):
+        upid = ((d.get("products") or {}).get("Mindspark") or {}).get("UPID")
+        if d.get("UID") and upid:
+            upids[str(d["UID"])] = str(upid)
+    return upids
 
-    TODO(class link): fill in once mindspark_class_probe.js shows how a learner
-    links to a class. Candidates seen so far in UserManagement: Groups,
-    SectionDetails, UserProducts (via UserDetails.products.Mindspark.UPID),
-    ProductSectionBatchMapping, Batch. Build the label as e.g. "Grade 5 A".
+
+def mindspark_products(um_db):
     """
-    return {}
+    {UID: that learner's MindSpark UserProducts document}.
+
+    A user can hold several products; the one whose UPID matches
+    UserDetails.products.Mindspark.UPID is used. Without that link, the
+    first product found is used.
+    """
+    upids = _mindspark_upids(um_db)
+    products = {}
+    fields = {"UID": 1, "UPID": 1, "category": 1, "batch.ActiveBatch": 1}
+    for product in um_db.UserProducts.find({}, fields):
+        uid = str(product.get("UID") or "")
+        if not uid:
+            continue
+        upid = str(product.get("UPID") or product.get("_id") or "")
+        wanted = upids.get(uid)
+        if wanted is not None and upid != wanted:
+            continue
+        if wanted is None and uid in products:
+            continue
+        products[uid] = product
+    return products
+
+
+def class_name_for(product):
+    """'Grade <grade> <section>' from batch.ActiveBatch, or None."""
+    batch = (product.get("batch") or {}).get("ActiveBatch") or {}
+    grade = str(batch.get("grade") or "").strip()
+    section = str(batch.get("section") or "").strip()
+    if not grade:
+        return None
+    name = "Grade {} {}".format(grade, section) if section else "Grade {}".format(grade)
+    return name[:CLASS_NAME_MAX]
+
+
+def build_class_map(um_db, products=None):
+    """Return {mindspark_UID: kolibri_class_name}, e.g. "Grade 7 A"."""
+    if products is None:
+        products = mindspark_products(um_db)
+    names = {uid: class_name_for(p) for uid, p in products.items()}
+    return {uid: name for uid, name in names.items() if name}
+
+
+def build_role_map(um_db, products=None):
+    """Return {mindspark_UID: UserProducts.category}, e.g. "student"."""
+    if products is None:
+        products = mindspark_products(um_db)
+    return {
+        uid: str(p.get("category") or "").strip().lower() for uid, p in products.items()
+    }
 
 
 class Command(BaseCommand):
@@ -133,8 +189,12 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--staff-pattern",
-            default=DEFAULT_STAFF_PATTERN,
-            help="Regex on MindSpark username for accounts to skip",
+            default=None,
+            help=(
+                "Regex on MindSpark username for accounts to skip. When given, it "
+                "replaces the default rule (import only UserProducts.category "
+                "'student')."
+            ),
         )
         parser.add_argument(
             "--remove-inactive",
@@ -279,12 +339,17 @@ class Command(BaseCommand):
         )
 
         usernames = self.load_usernames(auth)
-        class_map = build_class_map(um)
+        products = mindspark_products(um)
+        class_map = build_class_map(um, products)
+        self.roles = build_role_map(um, products)
+        self.staff_re = staff_re
+        self.staff_already_imported = []
         if not class_map:
             self.stdout.write(
                 self.style.WARNING(
-                    "Class link not configured yet: learners will be imported without "
-                    "classes and existing class memberships left alone."
+                    "No classes found in MindSpark (UserProducts.batch.ActiveBatch): "
+                    "learners will be imported without classes and existing class "
+                    "memberships left alone."
                 )
             )
 
@@ -304,7 +369,6 @@ class Command(BaseCommand):
                         d,
                         usernames,
                         class_map,
-                        staff_re,
                         options["remove_inactive"],
                         cache,
                         taken,
@@ -317,10 +381,37 @@ class Command(BaseCommand):
             client.close()
 
         for key in sorted(self.stats):
-            self.stdout.write("{:<22} {}".format(key, self.stats[key]))
+            self.stdout.write("{:<28} {}".format(key, self.stats[key]))
+        self.report_staff_already_imported()
+
+    def report_staff_already_imported(self):
+        if not self.staff_already_imported:
+            return
+        self.stdout.write(
+            self.style.WARNING(
+                "These Kolibri accounts are staff in MindSpark but were imported "
+                "earlier as learners. The import leaves them alone; remove them in "
+                "Facility > Users, or make them coaches:"
+            )
+        )
+        for username in sorted(self.staff_already_imported):
+            self.stdout.write("  {}".format(username))
+
+    def is_staff(self, uid, ms_username):
+        """
+        Whether to skip this account as staff. --staff-pattern decides when
+        given; otherwise only MindSpark "student" products are learners.
+        Returns None when the account has no MindSpark product at all.
+        """
+        if self.staff_re is not None:
+            return bool(self.staff_re.search(ms_username))
+        role = self.roles.get(uid)
+        if role is None:
+            return None
+        return role != LEARNER_CATEGORY
 
     def import_one(
-        self, facility, d, usernames, class_map, staff_re, remove_inactive, cache, taken
+        self, facility, d, usernames, class_map, remove_inactive, cache, taken
     ):
         # UID may be stored as an ObjectId or a number; id_number is a string.
         uid = d.get("UID") or d.get("_id")
@@ -329,11 +420,17 @@ class Command(BaseCommand):
         if not uid or not ms_username:
             self.stats["skipped_no_username"] += 1
             return
-        if staff_re and staff_re.search(ms_username):
-            self.stats["skipped_staff"] += 1
-            return
-
         existing = FacilityUser.objects.filter(facility=facility, id_number=uid).first()
+
+        staff = self.is_staff(uid, ms_username)
+        if staff is None:
+            self.stats["skipped_no_mindspark_product"] += 1
+            return
+        if staff:
+            self.stats["skipped_staff"] += 1
+            if existing:
+                self.staff_already_imported.append(existing.username)
+            return
 
         if d.get("status") != "A":
             self.stats["inactive_in_mindspark"] += 1

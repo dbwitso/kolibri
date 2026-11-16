@@ -34,13 +34,18 @@ Other places that hold personal data:
 - **Kolibri's own server logs** in the Kolibri home volume. These can contain
   usernames and request details.
 - **Exports** made at the end of the project (see below), until deleted.
+- **The import log** (`/var/log/lshe/import.log`), only when an earlier run
+  imported MindSpark *staff* accounts as learners: their usernames are
+  listed so an admin can remove them. No learner names or usernames are
+  logged.
 
 These places don't hold personal data:
 
 - **Monthly report files** (`/srv/lshe-reports`, and the copies on the
   provider's central machine). They are aggregate counts per class and
   gender, with no names, usernames, birth years or per-learner rows.
-- **Import and report logs** in `/var/log/lshe`. They record counts only.
+- **Import and report logs** in `/var/log/lshe`. Apart from the case above,
+  they record counts only.
 
 MindSpark is never written to. Its data stays under its own arrangements.
 

@@ -12,8 +12,15 @@ Nothing is written back, and no report is linked to MindSpark.
 1. Reads learners from `UserManagement.UserDetails` (name, gender, date of
    birth, status, organisation) and their usernames from
    `UserAuthentication.Authentication`, matched on the MindSpark `UID`.
-2. Skips staff accounts (see `--staff-pattern`) and accounts with no username.
-3. For each active learner (status `A`), creates or updates a Kolibri learner
+2. Finds each user's MindSpark product: the `UserManagement.UserProducts`
+   record whose `UPID` matches `UserDetails.products.Mindspark.UPID`. Its
+   `category` is the user's role, and its `batch.ActiveBatch` is their
+   current class (grade and section).
+3. Imports only accounts whose role is `student`. Teacher and other staff
+   accounts are skipped, whatever their username, as are accounts with no
+   username or no MindSpark product. `--staff-pattern` replaces the role rule
+   with a username pattern, as an override.
+4. For each active learner (status `A`), creates or updates a Kolibri learner
    in the facility:
    - **Matched on MindSpark UID**, which is stored in the learner's Kolibri
      "ID number" field. Re-running updates learners in place, never
@@ -29,9 +36,12 @@ Nothing is written back, and no report is linked to MindSpark.
      stored.
    - **No password.** MindSpark passwords are not copied. Learners sign in by
      username alone (formal preset).
-4. Puts each learner in their class, creating Kolibri classes as needed with
-   consistent names (for example `Grade 5 A`).
-5. Writes everything through Kolibri's own data layer, never with SQL, and
+5. Puts each learner in their current MindSpark class, creating Kolibri
+   classes as needed with consistent names: `Grade <grade> <section>`, for
+   example `Grade 7 A`. A learner who moved class in MindSpark is moved in
+   Kolibri, and leaves the old class's groups. A learner with no current
+   class in MindSpark keeps their Kolibri classes unchanged.
+6. Writes everything through Kolibri's own data layer, never with SQL, and
    in one transaction: a failed run changes nothing.
 
 A learner who is deactivated in MindSpark (status `D`) is reported but left
@@ -39,11 +49,10 @@ in their class, unless `--remove-inactive` is given. In that case they are
 taken out of all their classes. Their Kolibri account and activity history
 are never deleted by the import.
 
-> **Status of the class link.** How MindSpark links a learner to a class is
-> being confirmed with `docker/lshe/mindspark_class_probe.js`, run on a
-> MindSpark server. Until that mapping is in place, the import creates and
-> updates learners but doesn't touch class memberships. It says so in its
-> output.
+If a MindSpark staff account was imported as a learner by an earlier run
+(before roles were read from MindSpark), the import lists it at the end of
+its output. It never deletes accounts: remove them in **Facility → Users**,
+or make them coaches.
 
 ## When to run it
 
@@ -77,7 +86,8 @@ is written. To undo a successful import, restore the backup (see
 [deployment.md](deployment.md)).
 
 The counts printed at the end include `created`, `updated`, `unchanged`,
-`skipped_staff`, `skipped_no_username`, `username_changed`,
+`skipped_staff`, `skipped_no_username`, `skipped_no_mindspark_product`,
+`username_changed`,
 `inactive_in_mindspark`, `inactive_removed_from_class`, `classes_created`,
 `class_added`, `class_removed` and `no_class_in_mindspark`. Check them on
 every dry run before applying. A large `created` count on a centre that is
@@ -90,7 +100,7 @@ already set up usually means the wrong `--org-id`.
 | `--mongo-uri` | `$MINDSPARK_MONGO_URI` | MindSpark MongoDB address. Prefer the environment variable, which keeps the password out of shell history |
 | `--facility` | the device's default facility | Kolibri facility ID |
 | `--org-id` | all | Only import learners with this MindSpark `orgID` |
-| `--staff-pattern` | `(coach\|head\|admin\|test\|teacher)` | Regular expression on the MindSpark username; matching accounts are skipped |
+| `--staff-pattern` | none (use MindSpark roles) | Regular expression on the MindSpark username. When given, matching accounts are skipped and MindSpark roles are ignored. Use only if the role data is wrong |
 | `--remove-inactive` | off | Take MindSpark-deactivated learners out of their Kolibri classes |
 | `--dryrun` | off | Do everything, report, then roll back |
 | `--um-db`, `--auth-db` | `UserManagement`, `UserAuthentication` | MindSpark database names |
