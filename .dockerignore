@@ -6,3 +6,8 @@ dist/*
 .vscode/
 Dockerfile*
 docker/mnt/
+
+# Deployment secrets must never be copied into an image.
+**/.env
+docker/testserver.env
+docker/lshe/central/centres.conf
