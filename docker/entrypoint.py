@@ -100,7 +100,9 @@ def get_kolibri_version(kolibri_cmd):
     or a Kolibri pex invocation like ['python', 'some.pex'].
     Returns tuple of ints (major, minor), or (None, None) if verison check fails.
     """
-    MAJOR_MINOR_PAT = re.compile(r"^(?P<major>\d+)\.(?P<minor>\d+)(\.\d+)?.*")
+    # `kolibri --version` prints e.g. "kolibri, version 0.16.0", so the version
+    # is not at the start of the line.
+    MAJOR_MINOR_PAT = re.compile(r"(?P<major>\d+)\.(?P<minor>\d+)(\.\d+)?")
     cmd = kolibri_cmd[:] + ["--version"]
     logging.info("Calling cmd {} to get the Kolibri version information.".format(cmd))
     cmd_str = " ".join(cmd)
@@ -121,6 +123,9 @@ def create_facility(kolibri_cmd):
       - Kolibri versions in range [0.9, +     --> provisiondevice
     """
     logging.info("Running create_facility")
+    if device_already_provisioned(kolibri_cmd):
+        logging.info("Device already provisioned. Skipping facility creation.")
+        return
     major, minor = get_kolibri_version(kolibri_cmd)
     if major is None or minor is None:
         logging.warning("Failed to retrieve Kolibri version. Skipping.")
@@ -134,6 +139,25 @@ def create_facility(kolibri_cmd):
             logging.info("Skipping automated facility creation step.")
 
 
+def device_already_provisioned(kolibri_cmd):
+    """
+    True if this Kolibri home already has a provisioned device, so restarting
+    the container never re-runs provisiondevice (which would overwrite device
+    settings changed since).
+    """
+    code = (
+        "from kolibri.core.device.utils import device_provisioned; "
+        "print('DEVICE_PROVISIONED=%s' % device_provisioned())"
+    )
+    proc = subprocess.Popen(
+        kolibri_cmd[:] + ["manage", "shell", "-c", code],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    out = proc.communicate()[0].decode("utf-8", "replace")
+    return "DEVICE_PROVISIONED=True" in out
+
+
 def provisiondevice(kolibri_cmd):
     envs = os.environ
     logging.info(
@@ -143,22 +167,28 @@ def provisiondevice(kolibri_cmd):
             envs["KOLIBRI_PROVISIONDEVICE_FACILITY"]
         )
     )
-    cmd = kolibri_cmd[:]
-    cmd += ["manage", "provisiondevice"]
-    cmd += ['--facility "{}"'.format(envs["KOLIBRI_PROVISIONDEVICE_FACILITY"])]
-    cmd += ["--preset {}".format(envs["KOLIBRI_PROVISIONDEVICE_PRESET"])]
-    cmd += ["--superusername {}".format(envs["KOLIBRI_PROVISIONDEVICE_SUPERUSERNAME"])]
-    cmd += [
-        "--superuserpassword {}".format(
-            envs["KOLIBRI_PROVISIONDEVICE_SUPERUSERPASSWORD"]
-        )
+    # Arguments as a list, not a shell string, so a password containing $, a
+    # space or a quote cannot break the command or be read by the shell.
+    cmd = kolibri_cmd[:] + [
+        "manage",
+        "provisiondevice",
+        "--facility",
+        envs["KOLIBRI_PROVISIONDEVICE_FACILITY"],
+        "--preset",
+        envs["KOLIBRI_PROVISIONDEVICE_PRESET"],
+        "--superusername",
+        envs["KOLIBRI_PROVISIONDEVICE_SUPERUSERNAME"],
+        "--superuserpassword",
+        envs["KOLIBRI_PROVISIONDEVICE_SUPERUSERPASSWORD"],
+        "--language_id",
+        envs["KOLIBRI_LANG"],
+        "--verbosity",
+        "0",
+        "--noinput",
     ]
-    cmd += ["--language_id {}".format(envs["KOLIBRI_LANG"])]
-    cmd += ["--verbosity 0"]
-    cmd += ["--noinput"]
-    logging.debug("Provision command = {}".format(" ".join(cmd)))
-    cmd_str = " ".join(cmd)
-    subprocess.call(cmd_str, shell=True)
+    status = subprocess.call(cmd)
+    if status != 0:
+        logging.error("provisiondevice failed with exit status {}".format(status))
 
 
 # OTHER SETUP TASKS
