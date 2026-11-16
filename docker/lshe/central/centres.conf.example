@@ -1,0 +1,12 @@
+# Centres to collect LSHE reports from. Copy to centres.conf (keep it off
+# version control if it holds real addresses).
+#
+# One centre per line:  CENTRE_CODE  HOST  [SSH_PORT]  [SSH_USER]
+#   CENTRE_CODE  must match KOLIBRI_CENTRE_CODE on that server
+#   HOST         the server's NetBird name or address
+#   SSH_PORT     default 22
+#   SSH_USER     default lshe-reports (the read-only user, see README.md)
+# Blank lines and lines starting with # are ignored.
+
+CENTRE01  centre01.netbird.example  22  lshe-reports
+CENTRE02  100.64.0.12

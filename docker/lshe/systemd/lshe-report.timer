@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the LSHE monthly report on the 1st at 02:00
+
+[Timer]
+# Server local time; set the host timezone to Africa/Lusaka
+# (timedatectl set-timezone Africa/Lusaka).
+OnCalendar=*-*-01 02:00:00
+# If the server was off at 02:00 on the 1st, run as soon as it starts.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
