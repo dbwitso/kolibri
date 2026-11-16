@@ -7,13 +7,13 @@
 #   sudo ./run_monthly_report.sh            # previous month
 #   sudo ./run_monthly_report.sh 2027-03    # a given month (re-runs are safe)
 #
-# Writes /srv/lshe-reports/lshe_<CENTRE_CODE>_<YYYY-MM>.csv (+ .json) through
+# Writes lshe_<CENTRE_CODE>_<YYYY-MM>.csv (+ .json) into the container's
+# LSHE_REPORT_DIR (host: /srv/lshe-reports) through
 # the Kolibri container, and logs to $LSHE_LOG_DIR/report.log.
 
 set -euo pipefail
 
 CONTAINER="${LSHE_KOLIBRI_CONTAINER:-lshe-kolibri}"
-REPORT_DIR="${LSHE_REPORT_DIR:-/srv/lshe-reports}"
 LOG_DIR="${LSHE_LOG_DIR:-/var/log/lshe}"
 LOG_FILE="${LOG_DIR}/report.log"
 REPORT_TZ="${LSHE_REPORT_TIMEZONE:-Africa/Lusaka}"
@@ -52,10 +52,11 @@ if ! docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q t
   exit 1
 fi
 
-mkdir -p "$REPORT_DIR"
+# The output folder is the container's LSHE_REPORT_DIR (/srv/lshe-reports in
+# docker-compose.yml), bind-mounted from the host; nothing to create here.
 log "start lshereport --month $MONTH"
 if docker exec "$CONTAINER" kolibri manage lshereport --month "$MONTH" \
-    --output-dir "$REPORT_DIR" >>"$LOG_FILE" 2>&1; then
+    >>"$LOG_FILE" 2>&1; then
   log "done lshereport --month $MONTH"
 else
   status=$?
