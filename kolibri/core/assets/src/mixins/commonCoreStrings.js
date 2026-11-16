@@ -1122,7 +1122,7 @@ export const coreStrings = createTranslator('CommonCoreStrings', {
       'Warning message displayed to indicate a field where an input is required. The user cannot skip this field.',
   },
   usernameNotAlphaNumError: {
-    message: 'Username can only contain letters, numbers, and underscores',
+    message: 'Username can only contain letters, numbers, underscores and dots',
     context:
       "This is an error message that displays when users enter a username that contains characters other than letters, numbers or underscores.\n\nThis message appears on the 'Create an account' screen if the user enters unaccepted characters when entering a username.",
   },

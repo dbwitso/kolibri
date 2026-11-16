@@ -180,7 +180,7 @@
           "Refers to values in the 'Database ID' column of the CSV (comma separated values) file used to import and export users.\n",
       },
       usernameInfo: {
-        message: 'Maximum 125 characters. Can contain letters, numbers and underscores',
+        message: 'Maximum 125 characters. Can contain letters, numbers, underscores and dots',
         context:
           "Refers to values in the 'Username' column of the CSV (comma separated values) file used to import and export users.",
       },

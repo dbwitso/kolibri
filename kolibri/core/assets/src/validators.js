@@ -13,7 +13,7 @@ export function validateLinkObject(object) {
 }
 
 export function validateUsername(username) {
-  const hasPuncRe = /[\s`~!@#$%^&*()\-+={}\[\]\|\\\/:;"'<>,\.\?]/; // eslint-disable-line
+  const hasPuncRe = /[\s`~!@#$%^&*()\-+={}\[\]\|\\\/:;"'<>,\?]/; // eslint-disable-line
   return !hasPuncRe.test(username);
 }
 

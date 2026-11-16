@@ -366,11 +366,11 @@ class KolibriAbstractBaseUser(AbstractBaseUser):
     username = models.CharField(
         "username",
         max_length=30,
-        help_text="Required. 30 characters or fewer. Letters and digits only",
+        help_text="Required. 30 characters or fewer. Letters, digits, underscores and dots only",
         validators=[
             validators.RegexValidator(
-                r'[\s`~!@#$%^&*()\-+={}\[\]\|\\\/:;"\'<>,\.\?]',
-                "Enter a valid username. This value can contain only letters, numbers, and underscores.",
+                r'[\s`~!@#$%^&*()\-+={}\[\]\|\\\/:;"\'<>,\?]',
+                "Enter a valid username. This value can contain only letters, numbers, underscores and dots.",
                 inverse_match=True,
             )
         ],
