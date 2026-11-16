@@ -15,6 +15,7 @@ from kolibri.core.auth.api import KolibriAuthPermissionsFilter
 from kolibri.core.auth.constants.collection_kinds import ADHOCLEARNERSGROUP
 from kolibri.core.content.models import ContentNode
 from kolibri.core.content.models import LocalFile
+from kolibri.core.assessment import api_permissions as ap
 from kolibri.core.assessment import models
 from kolibri.core.assessment import serializers
 from kolibri.core.logger.models import MasteryLog
@@ -67,7 +68,7 @@ class ExamAssessmentPermissions(KolibriAuthPermissions):
 class AssessmentViewset(ValuesViewset):
     serializer_class = serializers.ExamAssessmentSerializer
     pagination_class = OptionalPageNumberPagination
-    permission_classes = (ExamAssessmentPermissions,)
+    permission_classes = (ap.AssessmentsEnabled, ExamAssessmentPermissions)
     filter_backends = (KolibriAuthPermissionsFilter, DjangoFilterBackend)
     filter_class = ExamAssessmentFilter
 
@@ -178,6 +179,7 @@ class AssessmentViewset(ValuesViewset):
     
 
 class GroupAssessmentViewset(ViewSet):
+    permission_classes = (ap.CoachForPkCollection,)
     queryset = models.ExamAssessmentGroup.objects.all()
     serializer_class = AssessmentSerializer
 
@@ -214,6 +216,7 @@ def fetch_random_question_source(question_source, assessment_topic):
 
 
 class CreateAssessmentRecord(ViewSet):
+    permission_classes = (ap.CoachForRequestCollection,)
     def create(self, request, pk=None):
         from .models import ExamAssessment, ExamAssignmentAssessment, AssessmentConfig
 
@@ -391,6 +394,7 @@ class CreateAssessmentRecord(ViewSet):
             return Response({"error": "Instance not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class ExamAssessmentStartViewSet(ViewSet):
+   permission_classes = (ap.CoachForPkGroup,)
    def partial_update(self, request, pk=None):  # Ensure pk is included in the method signature
         try:
             # Fetch the instances based on the assessment_group_id
@@ -434,6 +438,7 @@ class ExamAssessmentStartViewSet(ViewSet):
         
 
 class AssessmentTestViewSet(ViewSet):
+   permission_classes = (ap.CoachForRequestAssessment,)
    serializer_class = StartRestartTest
    def create(self, request): 
         try:
@@ -481,6 +486,7 @@ class AssessmentTestViewSet(ViewSet):
             return Response({"error": "Instance not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class ExamAssessmentStopViewSet(ViewSet):
+    permission_classes = (ap.CoachForPkGroup,)
     def partial_update(self, request, pk=None):
         try:
             update_dict = {'archive': AssessmentConstant.ARCHIVE}
@@ -504,6 +510,7 @@ class ExamAssessmentStopViewSet(ViewSet):
         
 
 class GetLearnerAssessmentViewset(ViewSet):
+    permission_classes = (ap.SelfOrCoachForQueryLearner,)
     queryset = models.ExamAssessmentGroup.objects.all()
     serializer_class = GetGroupExamAssessmentSerializer
 
@@ -533,6 +540,7 @@ def find_index(lst, key, value):
     return -1
 
 class FetchAssessmentGroupData(ViewSet):
+    permission_classes = (ap.CoachForPkGroup,)
     queryset = models.ExamAssessmentGroup.objects.all()
     serializer_class = GroupAssessmentSerializer
 
@@ -611,6 +619,7 @@ class FetchAssessmentGroupData(ViewSet):
             return Response({"error": "Exam Assessment not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class MarkAssessmentViewset(ViewSet):
+    permission_classes = (ap.SelfOrCoachForRequestAssessment,)
     serializer_class = MarkAssessmentSerializer
 
     def create(self, request):
@@ -789,6 +798,7 @@ class MarkAssessmentViewset(ViewSet):
         return None, None, False
 
 class AssessmentReportViewSet(ViewSet):
+    permission_classes = (ap.CoachForPkAssessment,)
 
     def retrieve(self, request, pk=None):
         try:
@@ -878,6 +888,7 @@ def paginate_dataframe(df, page_no, page_limit):
     
     return paginated_df
 class AssessmentHistoryReportViewSet(ViewSet):
+    permission_classes = (ap.SelfOrCoachForQueryLearners,)
 
     def retrieve(self, request, pk=None):
         try:
@@ -998,6 +1009,7 @@ class AssessmentHistoryReportViewSet(ViewSet):
         except models.AssessmentHistory.DoesNotExist:
             return Response({"error": "Assessment History not found"}, status=status.HTTP_404_NOT_FOUND)
 class GetAssessmentViewSet(ViewSet):
+    permission_classes = (ap.SelfOrCoachForPkLearner,)
 
     def retrieve(self, request, pk=None):
         try:
@@ -1040,6 +1052,7 @@ class GetAssessmentViewSet(ViewSet):
         except models.AssessmentHistory.DoesNotExist:
             return Response({"error": "Assessment History not found"}, status=status.HTTP_404_NOT_FOUND)
 class AssessmentChannelsViewSet(ViewSet):
+    permission_classes = (ap.IsAnyCoach,)
 
     def list(self, request):
         try:
