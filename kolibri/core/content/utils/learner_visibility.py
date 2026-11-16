@@ -7,6 +7,9 @@ superuser are considered "restricted learners" for this purpose.
 from django.db.models import Q
 
 from kolibri.core.content.models import ContentNode
+from kolibri.core.content.utils.assignment_restrictions import (
+    allowed_channel_ids_for_user,
+)
 from kolibri.core.exams.models import Exam
 from kolibri.core.exams.models import ExamAssignment
 from kolibri.core.lessons.models import Lesson
@@ -58,6 +61,18 @@ def get_assigned_content_ids(user):
     ):
         for question_source in question_sources:
             content_ids.add(question_source["exercise_id"])
+
+    # Second safeguard behind the save-time check: drop anything outside the
+    # channels the learner is allowed (e.g. their grade band), even if a bad
+    # assignment exists. Done before adding ancestors, so the topics of a
+    # dropped resource are not shown either.
+    allowed_channels = allowed_channel_ids_for_user(user)
+    if allowed_channels is not None and content_ids:
+        content_ids = set(
+            ContentNode.objects.filter(
+                id__in=content_ids, channel_id__in=allowed_channels
+            ).values_list("id", flat=True)
+        )
 
     if not content_ids:
         return content_ids

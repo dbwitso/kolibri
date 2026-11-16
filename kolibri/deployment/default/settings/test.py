@@ -28,3 +28,9 @@ if process_cache:
     CACHES["process_cache"] = process_cache
 
 TESTING = True
+
+# The edulution plugin's LSHE grade bands are enforced by default (a class
+# with no band can receive no assignments). Core lesson/quiz tests create
+# classes without bands, so tests run with enforcement off; the grade band
+# tests turn it on explicitly.
+LSHE_GRADE_BANDS = "off"

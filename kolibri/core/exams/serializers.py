@@ -15,6 +15,7 @@ from kolibri.core.auth.models import Collection
 from kolibri.core.auth.models import FacilityUser
 from kolibri.core.auth.models import Membership
 from kolibri.core.auth.utils.users import create_adhoc_group_for_learners
+from kolibri.core.content.utils.assignment_restrictions import check_assignable
 from kolibri.core.exams.models import Exam
 from kolibri.core.exams.models import ExamAssignment
 from kolibri.core.serializers import DateTimeTzField
@@ -73,10 +74,38 @@ class ExamSerializer(ModelSerializer):
         )
         read_only_fields = ("data_model_version",)
 
+    def _check_grade_bands(self, attrs, collection):
+        """
+        Every exercise must be allowed for every classroom the quiz reaches
+        (see kolibri.core.content.utils.assignment_restrictions). A save that
+        only takes an existing quiz out of use (inactive or archived) is
+        allowed, so coaches can always close a quiz.
+        """
+        instance = self.instance
+        changes_content = "question_sources" in attrs or "assignments" in attrs
+        active = attrs.get("active", getattr(instance, "active", False))
+        archived = attrs.get("archive", getattr(instance, "archive", False))
+        if instance is not None and not changes_content and (not active or archived):
+            return
+        sources = attrs.get(
+            "question_sources",
+            instance.question_sources if instance is not None else [],
+        )
+        if "assignments" in attrs:
+            assigned = list(attrs["assignments"])
+        elif instance is not None:
+            assigned = [a.collection for a in instance.assignments.all()]
+        else:
+            assigned = []
+        check_assignable(
+            [collection] + assigned, [source["exercise_id"] for source in sources]
+        )
+
     def validate(self, attrs):
         title = attrs.get("title")
         # first condition is for creating object, second is for updating
         collection = attrs.get("collection") or getattr(self.instance, "collection")
+        self._check_grade_bands(attrs, collection)
         if "learner_ids" in self.initial_data and self.initial_data["learner_ids"]:
             if (
                 len(self.initial_data["learner_ids"])

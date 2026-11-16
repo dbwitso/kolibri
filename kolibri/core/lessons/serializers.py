@@ -16,6 +16,7 @@ from kolibri.core.auth.models import Collection
 from kolibri.core.auth.models import FacilityUser
 from kolibri.core.auth.models import Membership
 from kolibri.core.auth.utils.users import create_adhoc_group_for_learners
+from kolibri.core.content.utils.assignment_restrictions import check_assignable
 
 
 class ResourceSerializer(Serializer):
@@ -57,10 +58,36 @@ class LessonSerializer(ModelSerializer):
             "created_by",
         )
 
+    def _check_grade_bands(self, attrs, collection):
+        """
+        Every resource must be allowed for every classroom the lesson reaches
+        (see kolibri.core.content.utils.assignment_restrictions). A save that
+        only takes an existing lesson out of use is allowed, so coaches can
+        always deactivate a lesson.
+        """
+        instance = self.instance
+        changes_content = "resources" in attrs or "lesson_assignments" in attrs
+        active = attrs.get("is_active", getattr(instance, "is_active", False))
+        if instance is not None and not changes_content and not active:
+            return
+        resources = attrs.get(
+            "resources", instance.resources if instance is not None else []
+        )
+        if "lesson_assignments" in attrs:
+            assigned = list(attrs["lesson_assignments"])
+        elif instance is not None:
+            assigned = [a.collection for a in instance.lesson_assignments.all()]
+        else:
+            assigned = []
+        check_assignable(
+            [collection] + assigned, [r["contentnode_id"] for r in resources]
+        )
+
     def validate(self, attrs):
         title = attrs.get("title")
         # first condition is for creating object, second is for updating
         collection = attrs.get("collection") or getattr(self.instance, "collection")
+        self._check_grade_bands(attrs, collection)
 
         if "learner_ids" in self.initial_data and self.initial_data["learner_ids"]:
             if (

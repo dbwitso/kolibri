@@ -8,6 +8,7 @@ import heartbeat from 'kolibri.heartbeat';
 import logger from 'kolibri.lib.logging';
 import store from 'kolibri.coreVue.vuex.store';
 import errorCodes from '../disconnectionErrorCodes';
+import { ERROR_CONSTANTS } from '../constants';
 import clientFactory from './baseClient';
 
 export const logging = logger.getLogger(__filename);
@@ -52,6 +53,34 @@ baseClient.interceptors.response.use(
       if (errorCodes.includes(error.response.status)) {
         // If so, set our heartbeat module to start monitoring the disconnection state
         heartbeat.monitorDisconnect(error.response.status);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Grade band rejections (LSHE): a lesson or quiz save was refused because some
+// content is outside the class's grade band, or the class has no band. Show
+// the server's explanation, which names the class, band and content. It is
+// shown after the caller's own error handling has run, so a generic "could
+// not save" snackbar from the page does not replace it.
+const GRADE_BAND_SNACKBAR_MS = 15000;
+baseClient.interceptors.response.use(
+  response => response,
+  function(error) {
+    const response = error.response;
+    const errors = response && response.status === 400 ? response.data : null;
+    if (Array.isArray(errors)) {
+      const bandError = errors.find(e => e && e.id === ERROR_CONSTANTS.GRADE_BAND_NOT_ALLOWED);
+      const text = bandError && bandError.metadata && bandError.metadata.message;
+      if (text) {
+        window.setTimeout(() => {
+          store.commit('CORE_CREATE_SNACKBAR', {
+            text,
+            autoDismiss: true,
+            duration: GRADE_BAND_SNACKBAR_MS,
+          });
+        }, 0);
       }
     }
     return Promise.reject(error);

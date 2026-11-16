@@ -6,6 +6,8 @@ from django.urls import reverse
 
 from kolibri.core.auth.constants.user_kinds import ANONYMOUS
 from kolibri.core.auth.constants.user_kinds import LEARNER
+from kolibri.core.content.hooks import ChannelRestriction
+from kolibri.core.content.hooks import ContentAssignmentRestrictionHook
 from kolibri.core.content.hooks import ContentNodeDisplayHook
 from kolibri.core.device.utils import allow_learner_unassigned_resource_access
 from kolibri.core.device.utils import get_device_setting
@@ -17,6 +19,8 @@ from kolibri.core.hooks import NavigationHook
 from kolibri.core.hooks import RoleBasedRedirectHook
 from kolibri.core.webpack import hooks as webpack_hooks
 from kolibri.plugins import KolibriPluginBase
+from kolibri.plugins.edulution import grade_bands
+from kolibri.plugins.edulution.lshe_settings import grade_bands_enforced
 from kolibri.plugins.hooks import register_hook
 from kolibri.utils import conf
 from kolibri.utils import translation
@@ -174,3 +178,23 @@ class NetworkBroadcastForSoUDHook(NetworkLocationBroadcastHook, DiscoveryHookMix
 # @register_hook
 # class MyDownloadsNavAction(NavigationHook):
 #     bundle_id = "my_downloads_side_nav"
+
+
+@register_hook
+class GradeBandRestrictionHook(ContentAssignmentRestrictionHook):
+    """LSHE grade bands: see kolibri.plugins.edulution.grade_bands."""
+
+    def restriction_for_classroom(self, classroom):
+        if not grade_bands_enforced():
+            return None
+        band = grade_bands.classroom_band(classroom.id)
+        if band is None:
+            return ChannelRestriction(label=None, channel_ids=frozenset())
+        return ChannelRestriction(
+            label=band, channel_ids=grade_bands.band_channel_ids(band)
+        )
+
+    def allowed_channel_ids_for_user(self, user):
+        if not grade_bands_enforced():
+            return None
+        return grade_bands.allowed_channel_ids_for_learner(user)

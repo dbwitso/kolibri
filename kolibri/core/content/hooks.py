@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 import json
 from abc import abstractmethod
 from abc import abstractproperty
+from collections import namedtuple
 
 from django.utils.safestring import mark_safe
 
@@ -78,3 +79,38 @@ class ContentNodeDisplayHook(KolibriHook):
     @abstractmethod
     def node_url(self, content_node):
         pass
+
+
+#: What a ContentAssignmentRestrictionHook says about one classroom.
+#: label: a name for the restriction to show coaches (e.g. a grade band), or
+#:   None when the classroom has no restriction configured, which means
+#:   nothing may be assigned to it.
+#: channel_ids: the channel ids (hex) whose content may be assigned.
+ChannelRestriction = namedtuple("ChannelRestriction", ["label", "channel_ids"])
+
+
+@define_hook
+class ContentAssignmentRestrictionHook(KolibriHook):
+    """
+    Limits which channels' content may be assigned to a classroom (lessons and
+    quizzes), and which channels a restricted learner may see.
+
+    Used by kolibri.core.content.utils.assignment_restrictions. When no hook
+    is registered there is no restriction.
+    """
+
+    @abstractmethod
+    def restriction_for_classroom(self, classroom):
+        """
+        :type classroom: kolibri.core.auth.models.Classroom
+        :return: None if this hook does not restrict the classroom, otherwise
+            a ChannelRestriction.
+        """
+
+    @abstractmethod
+    def allowed_channel_ids_for_user(self, user):
+        """
+        :type user: kolibri.core.auth.models.FacilityUser
+        :return: None if this hook does not restrict the user, otherwise the
+            set of channel ids (hex) the user may see content from.
+        """

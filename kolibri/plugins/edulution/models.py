@@ -10,6 +10,7 @@ servers), so they are plain Django models, not Morango syncable models.
 """
 from django.db import models
 
+from kolibri.core.auth.models import Classroom
 from kolibri.core.auth.models import FacilityUser
 from kolibri.core.fields import DateTimeTzField
 
@@ -40,3 +41,34 @@ class LSHEMonthlyEnrolment(models.Model):
     class Meta:
         db_table = "edulution_lshe_monthly_enrolment"
         unique_together = ("month", "user", "class_name")
+
+
+# Grade bands. Kolibri's dotted plugin app label ("kolibri.plugins.edulution")
+# breaks ForeignKeys between two models of this plugin on Django 1.11, so a
+# band is identified by its name in both tables rather than by a GradeBand row.
+
+BAND_NAME_MAX = 20
+
+
+class GradeBandChannel(models.Model):
+    """A channel whose content may be assigned to classes in a band."""
+
+    band = models.CharField(max_length=BAND_NAME_MAX, db_index=True)  # e.g. "G4-5"
+    # Hex channel id, as stored on ContentNode.channel_id.
+    channel_id = models.CharField(max_length=32)
+
+    class Meta:
+        db_table = "edulution_grade_band_channel"
+        unique_together = ("band", "channel_id")
+
+
+class ClassroomBand(models.Model):
+    """The grade band of a classroom. A classroom has at most one band."""
+
+    classroom = models.OneToOneField(
+        Classroom, on_delete=models.CASCADE, related_name="grade_band_link"
+    )
+    band = models.CharField(max_length=BAND_NAME_MAX, db_index=True)
+
+    class Meta:
+        db_table = "edulution_classroom_band"

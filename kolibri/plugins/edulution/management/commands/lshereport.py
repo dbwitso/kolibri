@@ -46,11 +46,9 @@ import io
 import json
 import os
 import re
-import uuid
 from collections import defaultdict
 
 import pytz
-from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
 from django.db import transaction
@@ -69,6 +67,7 @@ from kolibri.core.auth.models import Membership
 from kolibri.core.logger.models import ContentSessionLog
 from kolibri.core.logger.models import ContentSummaryLog
 from kolibri.core.logger.models import UserSessionLog
+from kolibri.plugins.edulution.lshe_settings import teacher_channel_ids
 from kolibri.plugins.edulution.models import LSHEMonthlyEnrolment
 
 REPORT_VERSION = 1
@@ -110,27 +109,6 @@ def month_bounds(year, month, tz):
     else:
         end = tz.localize(datetime.datetime(year, month + 1, 1))
     return start, end
-
-
-def teacher_channel_ids():
-    raw = os.environ.get("LSHE_TEACHER_CHANNEL_IDS")
-    if raw is None:
-        raw = getattr(settings, "LSHE_TEACHER_CHANNEL_IDS", "")
-    if isinstance(raw, (list, tuple, set)):
-        values = list(raw)
-    else:
-        values = re.split(r"[\s,]+", raw)
-    ids = []
-    for value in values:
-        if not value:
-            continue
-        try:
-            ids.append(uuid.UUID(value).hex)
-        except ValueError:
-            raise CommandError(
-                "LSHE_TEACHER_CHANNEL_IDS has an invalid channel id: {!r}".format(value)
-            )
-    return sorted(set(ids))
 
 
 def normalise_gender(value):
@@ -336,7 +314,10 @@ class Command(BaseCommand):
         if not os.path.isdir(output_dir):
             raise CommandError("Output directory does not exist: {}".format(output_dir))
 
-        excluded = teacher_channel_ids()
+        try:
+            excluded = teacher_channel_ids()
+        except ValueError as e:
+            raise CommandError(str(e))
         enrolment, snapshot_at = self.enrolment(month, end, now)
         data = self.per_learner(
             list({row[0] for row in enrolment}), start, end, excluded
