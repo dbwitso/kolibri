@@ -46,8 +46,11 @@ such as UFW, so that binding is what keeps them off other interfaces.
 
 ## Install
 
-1. Install Docker Engine with the Compose plugin, and set the host timezone:
-   `sudo timedatectl set-timezone Africa/Lusaka`.
+1. Install Docker Engine with the Compose plugin. Setting the host timezone
+   to Africa/Lusaka (`sudo timedatectl set-timezone Africa/Lusaka`) is
+   optional. Kolibri, the reports and the report timer use Lusaka time
+   whatever the host's zone is, so leave it alone if other software on the
+   server depends on it.
 2. Get the source at the release tag to deploy, for example
    `git clone <repository> /opt/lshe/kolibri && cd /opt/lshe/kolibri && git checkout <tag>`.
 3. Create the host folders:

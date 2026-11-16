@@ -1,11 +1,13 @@
 [Unit]
-Description=Run the LSHE monthly report on the 1st at 02:00
+Description=Run the LSHE monthly report on the 1st at 02:00 Lusaka time
 
 [Timer]
-# Server local time; set the host timezone to Africa/Lusaka
-# (timedatectl set-timezone Africa/Lusaka).
-OnCalendar=*-*-01 02:00:00
-# If the server was off at 02:00 on the 1st, run as soon as it starts.
+# The time zone is given here, so the server's own clock setting doesn't
+# matter (a server shared with MindSpark may run on another zone). Running
+# at 02:00 server time on a server ahead of Lusaka would fire before the
+# month has ended in Lusaka, and the report would cover the wrong month.
+OnCalendar=*-*-01 02:00:00 Africa/Lusaka
+# If the server was off at that time, run as soon as it starts.
 Persistent=true
 
 [Install]

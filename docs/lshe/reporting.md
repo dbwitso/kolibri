@@ -68,7 +68,8 @@ refuses to run without it.
 ## Schedule
 
 A systemd timer on each centre server runs the report for the previous month
-on the **1st of each month at 02:00** (local time). If the server is off at
+on the **1st of each month at 02:00 Lusaka time**, whatever time zone the
+server's clock uses. If the server is off at
 that time, the report runs when it next starts. To run it by hand:
 
 ```sh

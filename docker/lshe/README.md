@@ -22,6 +22,9 @@ file is for and the host settings they rely on.
 ### First start
 
 ```sh
+# Optional: the report timer and the containers use Africa/Lusaka whatever
+# the host's zone is, so leave the host zone alone if other software on the
+# server (for example MindSpark) depends on it.
 sudo timedatectl set-timezone Africa/Lusaka
 sudo mkdir -p /srv/lshe-reports /srv/lshe-content /srv/lshe-backups /var/log/lshe
 # From the repository root: build the base image once per server. It is not
@@ -99,13 +102,19 @@ sudo systemctl enable --now lshe-report.timer
 systemctl list-timers lshe-report.timer
 ```
 
-`Persistent=true` makes a missed run (server off at 02:00 on the 1st) happen
+The timer fires at 02:00 **Lusaka time** (`OnCalendar=… Africa/Lusaka`)
+whatever zone the server's clock is set to. `Persistent=true` makes a missed run (server off at 02:00 on the 1st) happen
 at the next boot. To run by hand: `sudo ./run_monthly_report.sh [YYYY-MM]`.
 Re-running a month overwrites its file with the same figures. The log is in
 `/var/log/lshe/report.log`.
 
-As a cron alternative to the timer:
-`0 2 1 * * /opt/lshe/kolibri/docker/lshe/run_monthly_report.sh`.
+As a cron alternative to the timer, set the zone in the crontab, because cron
+otherwise uses the server's zone:
+
+```
+CRON_TZ=Africa/Lusaka
+0 2 1 * * /opt/lshe/kolibri/docker/lshe/run_monthly_report.sh
+```
 
 ### Read-only user for report collection
 
