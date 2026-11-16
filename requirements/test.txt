@@ -15,3 +15,4 @@ pytest-django==4.5.2
 pytest-env==1.1.1
 attrs==19.1.0
 parameterized==0.8.1
+mongomock==4.1.2  # importfrommindspark tests (LSHE)

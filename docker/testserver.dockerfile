@@ -26,6 +26,7 @@ ENTRYPOINT ["python", "/docker/entrypoint.py"]
 RUN cd /kolibri \
     && pip3 install -e . \
     && pip3 install -r requirements/postgres.txt \
+    && pip3 install -r requirements/lshe.txt \
     && yarn run build
 
 # Regenerate kolibri/VERSION from the current commit (rather than leaving any
