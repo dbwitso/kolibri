@@ -37,7 +37,7 @@ LSHE videos. Confirm it with the "full class streams at once" test in
 | Port | Used by | Reachable from |
 | --- | --- | --- |
 | 8080 | Kolibri: pages, API, videos and other media (`/content/storage/`) | Centre LAN |
-| 8081 | Kolibri's sandboxed server for zipped HTML5 and H5P content | Centre LAN |
+| 8081 (`LSHE_ZIP_PORT`) | Kolibri's sandboxed server for zipped HTML5 and H5P content. Set another port if 8081 is already used on the server | Centre LAN |
 | 22 | SSH for support and report collection | VPN only |
 
 PostgreSQL is not exposed. Both Kolibri ports are bound to the server's LAN
@@ -52,12 +52,20 @@ such as UFW, so that binding is what keeps them off other interfaces.
    `git clone <repository> /opt/lshe/kolibri && cd /opt/lshe/kolibri && git checkout <tag>`.
 3. Create the host folders:
    `sudo mkdir -p /srv/lshe-reports /srv/lshe-content /srv/lshe-backups /var/log/lshe`.
-4. `cd docker/lshe && cp .env.example .env && chmod 600 .env`, then fill in
+4. Check that ports 8080 and 8081 are free:
+   `sudo ss -ltnp | grep -E ':(8080|8081)\b'`. If 8081 is taken, choose
+   another port for `LSHE_ZIP_PORT` in the next step.
+5. Build the base image, from the repository root:
+   `docker build -f docker/base.dockerfile -t learningequality/kolibribase .`.
+   It is not available from a registry. Rebuild it when the Python or
+   JavaScript requirements change.
+6. `cd docker/lshe && cp .env.example .env && chmod 600 .env`, then fill in
    every value. `.env` holds passwords, so it must never be committed or
-   copied off the server.
-5. `docker compose up -d --build`. The first build compiles the frontend, so
-   allow plenty of time.
-6. Open `http://<LSHE_BIND_IP>:8080` from a tablet.
+   copied off the server. It is kept out of the Docker images.
+7. `docker compose up -d --build`. The first build compiles the frontend, so
+   allow plenty of time. On first start, the facility and superuser from
+   `.env` are created, with the formal preset.
+8. Open `http://<LSHE_BIND_IP>:8080` from a tablet.
 
 [`docker/lshe/README.md`](../../docker/lshe/README.md) covers the MindSpark
 connection, firewall settings, the report timer and the read-only

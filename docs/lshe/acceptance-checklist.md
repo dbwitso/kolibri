@@ -19,8 +19,8 @@ Record for each check: date, server (centre code), tester, result
 | 1.1 | Formal preset | Facility → Settings | Learners sign in with no password; learners cannot edit their account; guest access off |
 | 1.2 | Bands set | `kolibri manage setclassband --list` | Every class is in a band; every band lists its LSHE channels; no teacher channel in any band |
 | 1.3 | Teacher channels configured | `.env` has `LSHE_TEACHER_CHANNEL_IDS` | The IDs of every teacher channel |
-| 1.4 | Ports | From a tablet: `http://<server>:8080` and `http://<server>:8081` | Both answer. 8081 shows an error page for the bare address; that is normal |
-| 1.5 | No other exposure | From a device on another network (VPN): ports 8080, 8081, 5432 | Not reachable |
+| 1.4 | Ports | From a tablet: `http://<server>:8080` and `http://<server>:<LSHE_ZIP_PORT>` (default 8081) | Both answer. The zip port shows an error page for the bare address; that is normal |
+| 1.5 | No other exposure | From a device on another network (VPN): ports 8080, the zip port, 5432 | Not reachable |
 
 ## 2. Grade bands ★
 
@@ -79,7 +79,7 @@ Use a test learner in a test class, and run the report for the current month
 | # | Check | How | Expected |
 | --- | --- | --- | --- |
 | 7.1 | Video plays | On a tablet, as a learner, play an assigned LSHE video, then seek forwards and backwards | Plays smoothly; seeking works. Videos are served from port 8080 |
-| 7.2 | HTML5 / H5P content opens | Open an assigned interactive (HTML5 or H5P) resource | It loads and responds. These are served from port 8081; if 8081 is blocked they stay blank |
+| 7.2 | HTML5 / H5P content opens | Open an assigned interactive (HTML5 or H5P) resource | It loads and responds. These are served from the zip port (`LSHE_ZIP_PORT`, default 8081); if it is blocked they stay blank |
 | 7.3 | A full class streams at once | With the largest class's number of tablets, all learners start the same video within a minute and watch for 10 minutes | No tablet stalls for more than a few seconds; record the access point's peak throughput and the server's CPU load |
 
 ## 8. Operations

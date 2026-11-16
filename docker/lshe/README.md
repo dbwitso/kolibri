@@ -24,6 +24,9 @@ file is for and the host settings they rely on.
 ```sh
 sudo timedatectl set-timezone Africa/Lusaka
 sudo mkdir -p /srv/lshe-reports /srv/lshe-content /srv/lshe-backups /var/log/lshe
+# From the repository root: build the base image once per server. It is not
+# on Docker Hub. Rebuild it when requirements/ or package.json change.
+docker build -f docker/base.dockerfile -t learningequality/kolibribase .
 cd docker/lshe
 cp .env.example .env && chmod 600 .env   # then fill in every value
 docker compose up -d --build
@@ -36,8 +39,13 @@ superuser password, `docker/entrypoint.py` would use its default
 
 ### Ports and firewall
 
-- Tablets need **8080** (Kolibri) and **8081** (zipped and HTML5 content) on
-  the centre LAN. Both are published on `LSHE_BIND_IP` only.
+- Tablets need **8080** (Kolibri, including videos) and the zip content port
+  (`LSHE_ZIP_PORT`, default **8081**, for zipped HTML5 and H5P content) on the
+  centre LAN. Both are published on `LSHE_BIND_IP` only.
+- If something else on the server already uses 8081 (for example a
+  Guacamole gateway), set `LSHE_ZIP_PORT` to a free port such as 8082. Kolibri
+  tells browsers this port, so it is used unchanged inside and outside the
+  container. Check first with `sudo ss -ltnp | grep -E ':(8080|8081)\b'`.
 - **Docker-published ports bypass UFW.** Docker writes its own iptables rules,
   so `ufw deny 8080` has no effect. Binding to `LSHE_BIND_IP` is what keeps
   the ports off the NetBird and other interfaces. If you also need UFW rules
@@ -46,11 +54,18 @@ superuser password, `docker/entrypoint.py` would use its default
 
 ### Reaching MindSpark (MongoDB)
 
-Inside the container, `127.0.0.1` is the container itself, not the host. Set
-`MINDSPARK_MONGO_URI` to the MindSpark server's LAN address. If MindSpark runs
-on the same box, use this server's LAN address.
+Inside the container, `127.0.0.1` is the container itself, not the host.
 
-On the MindSpark server:
+**MongoDB on this same server** (installed natively): if `mongod` already
+listens on all interfaces (`bindIp: 0.0.0.0`), use the gateway address of
+Kolibri's Docker network, `172.30.50.1` (with the default
+`LSHE_DOCKER_SUBNET`), in `MINDSPARK_MONGO_URI`. It doesn't change when the
+server's LAN address does. Make sure MongoDB has `security.authorization:
+enabled`, because a `0.0.0.0` binding exposes it to every network the server
+is on. Then skip to step 3 below (the read-only user).
+
+**MongoDB on another machine:** set `MINDSPARK_MONGO_URI` to that machine's
+LAN address. On the MindSpark server:
 
 1. `mongod.conf` → `net.bindIp` must include that LAN address, e.g.
    `bindIp: 127.0.0.1,192.168.1.10`. Restart `mongod`.

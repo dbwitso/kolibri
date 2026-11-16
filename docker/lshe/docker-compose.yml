@@ -1,8 +1,8 @@
 # LSHE centre server: Kolibri + PostgreSQL, fully offline.
 #
 # Tablets on the centre Wi-Fi open http://<server LAN IP>:8080 in a browser.
-# Videos and zipped (HTML5) content are served from a second origin on 8081,
-# so both ports must reach the LAN.
+# Videos come from 8080; zipped (HTML5/H5P) content from a second origin on
+# LSHE_ZIP_PORT (default 8081), so both ports must reach the LAN.
 #
 # Usage, from this directory (docker/lshe):
 #   cp .env.example .env     # then fill it in; .env is git-ignored
@@ -46,7 +46,8 @@ services:
       KOLIBRI_HOME: /kolibrihome
       KOLIBRI_HTTP_PORT: "8080"
       # Pinned so it can be published; Kolibri otherwise picks a random port.
-      KOLIBRI_ZIP_CONTENT_PORT: "8081"
+      # Browsers are told this port, so it must be the same inside and out.
+      KOLIBRI_ZIP_CONTENT_PORT: "${LSHE_ZIP_PORT:-8081}"
       KOLIBRI_RUN_MODE: lshe
       KOLIBRI_DATABASE_ENGINE: postgres
       KOLIBRI_DATABASE_HOST: db
@@ -71,7 +72,7 @@ services:
       # Bind to the centre LAN address only (not NetBird or other interfaces).
       # Docker-published ports bypass UFW, so this binding is what limits them.
       - "${LSHE_BIND_IP:?set LSHE_BIND_IP (the server's centre LAN address) in .env}:8080:8080"
-      - "${LSHE_BIND_IP}:8081:8081"
+      - "${LSHE_BIND_IP}:${LSHE_ZIP_PORT:-8081}:${LSHE_ZIP_PORT:-8081}"
     volumes:
       - kolibrihome:/kolibrihome
       # Monthly report CSVs, read by the host's timer and collected centrally.
