@@ -340,9 +340,32 @@ class BaseChannelMetadataMixin(object):
         return Response(data)
 
 
+def _restricted_content_ids(request):
+    """
+    None if the requesting user is not a restricted learner, otherwise the set
+    of content node ids they may see (see learner_visibility).
+    """
+    user = getattr(request, "user", None)
+    if user is not None and is_restricted_learner(user):
+        return get_assigned_content_ids(user)
+    return None
+
+
 @method_decorator(metadata_cache, name="dispatch")
 class ChannelMetadataViewSet(BaseChannelMetadataMixin, RemoteViewSet):
-    pass
+    def get_queryset(self):
+        queryset = super(ChannelMetadataViewSet, self).get_queryset()
+        # Restricted learners only see channels they have visible content in,
+        # so they do not learn the names of other bands' or teacher channels.
+        allowed = _restricted_content_ids(getattr(self, "request", None))
+        if allowed is not None:
+            channel_ids = (
+                models.ContentNode.objects.filter(id__in=allowed)
+                .values_list("channel_id", flat=True)
+                .distinct()
+            )
+            queryset = queryset.filter(id__in=channel_ids)
+        return queryset
 
 
 class IdFilter(FilterSet):
@@ -1484,6 +1507,11 @@ class ContentNodeGranularViewset(mixins.RetrieveModelMixin, viewsets.GenericView
     serializer_class = serializers.ContentNodeGranularSerializer
 
     def get_queryset(self):
+        allowed = _restricted_content_ids(getattr(self, "request", None))
+        if allowed is not None:
+            return models.ContentNode.objects.filter(id__in=allowed).filter(
+                renderable_contentnodes_q_filter
+            )
         return (
             models.ContentNode.objects.all()
             .prefetch_related("files__local_file")
@@ -1783,7 +1811,13 @@ class FileViewset(viewsets.ReadOnlyModelViewSet):
     pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
-        return models.File.objects.all()
+        queryset = models.File.objects.all()
+        # File records carry the storage checksum, which is the file's URL, so
+        # restricted learners only get those of content they may see.
+        allowed = _restricted_content_ids(getattr(self, "request", None))
+        if allowed is not None:
+            queryset = queryset.filter(contentnode_id__in=allowed)
+        return queryset
 
 
 @method_decorator(cache_page(60 * 5), name="dispatch")
@@ -1914,14 +1948,25 @@ class RemoteChannelViewSet(viewsets.ViewSet):
             return Response({"status": "offline", "available": False})
 
 class KnowledgeMapViewset(ReadOnlyModelViewSet):
+    # This definition replaces the earlier KnowledgeMapViewset in this module;
+    # it is the one the router uses.
     def retrieve(self, request, pk=None):
+        # Restricted learners only see nodes they may see (and prerequisites
+        # among them).
+        allowed = _restricted_content_ids(request)
+        if allowed is not None and pk not in allowed:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        def visible(queryset):
+            return queryset if allowed is None else queryset.filter(id__in=allowed)
+
         def get_progress(node):
             serializer = ContentNodeProgressViewsetForKnowledge.serializer_class(node)
             serializer.context['request'] = request
             return serializer.data['progress_fraction']
 
         def get_progress_by_id(id):
-            nodes = ContentNode.objects.filter(id=id)
+            nodes = visible(ContentNode.objects.filter(id=id))
             return 0.0 if len(nodes) == 0 else get_progress(nodes[0])
 
         def filter_pending(prereqs):
@@ -1934,11 +1979,13 @@ class KnowledgeMapViewset(ReadOnlyModelViewSet):
                                   'id': n.id}, nodes)
 
         def get_children(parent_id):
-            children = ContentNode.objects.filter(parent=parent_id, available=True)
+            children = visible(
+                ContentNode.objects.filter(parent=parent_id, available=True)
+            )
             serialized = ContentNodeSlimSerializer(children, many=True).data
             for c, s in zip(children, serialized):
                 s['progress_fraction'] = get_progress(c)
-                s['pendingPrerequisites'] = filter_pending(info(c.has_prerequisite.all()))
+                s['pendingPrerequisites'] = filter_pending(info(visible(c.has_prerequisite.all())))
             return serialized
 
         children = get_children(pk)

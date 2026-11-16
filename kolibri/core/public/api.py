@@ -38,6 +38,9 @@ from kolibri.core.content.models import ChannelMetadata
 from kolibri.core.content.models import ContentNode
 from kolibri.core.content.models import LocalFile
 from kolibri.core.content.serializers import PublicChannelSerializer
+from kolibri.core.content.utils.assignment_restrictions import (
+    public_content_api_guard,
+)
 from kolibri.core.content.utils.file_availability import checksum_regex
 from kolibri.core.content.utils.file_availability import generate_checksum_integer_mask
 from kolibri.core.device.models import SyncQueue
@@ -121,6 +124,8 @@ def public_metadata_cache(view_func):
     return wrapped_view
 
 
+# Outermost, so cached responses are blocked too during a content lockdown.
+@method_decorator(public_content_api_guard, name="dispatch")
 @method_decorator(public_metadata_cache, name="dispatch")
 class PublicChannelMetadataViewSet(BaseChannelMetadataMixin, ReadOnlyValuesViewset):
     def get_queryset(self):
@@ -131,16 +136,21 @@ class PublicChannelMetadataViewSet(BaseChannelMetadataMixin, ReadOnlyValuesViews
         )
 
 
+# Outermost, so cached responses are blocked too during a content lockdown.
+@method_decorator(public_content_api_guard, name="dispatch")
 @method_decorator(public_metadata_cache, name="dispatch")
 class PublicContentNodeViewSet(BaseContentNodeMixin, ReadOnlyValuesViewset):
     pagination_class = OptionalContentNodePagination
 
 
+# Outermost, so cached responses are blocked too during a content lockdown.
+@method_decorator(public_content_api_guard, name="dispatch")
 @method_decorator(public_metadata_cache, name="dispatch")
 class PublicContentNodeTreeViewSet(BaseContentNodeTreeViewset):
     pass
 
 
+@public_content_api_guard
 @api_view(["GET"])
 def get_public_channel_list(request, version):
     """ Endpoint: /public/<version>/channels/?=<query params> """
@@ -157,6 +167,7 @@ def get_public_channel_list(request, version):
     )
 
 
+@public_content_api_guard
 @api_view(["GET"])
 def get_public_channel_lookup(request, version, identifier):
     """ Endpoint: /public/<version>/channels/lookup/<identifier> """
@@ -183,6 +194,7 @@ def get_public_channel_lookup(request, version, identifier):
     )
 
 
+@public_content_api_guard
 @csrf_exempt
 @gzip_page
 def get_public_file_checksums(request, version):

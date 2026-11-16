@@ -6,6 +6,9 @@ whatever ContentAssignmentRestrictionHook implementations are registered
 
 With no registered hook, nothing here restricts anything.
 """
+from functools import wraps
+
+from django.http import JsonResponse
 from rest_framework.exceptions import ValidationError
 
 from kolibri.core import error_constants
@@ -18,6 +21,29 @@ MAX_TITLES_IN_MESSAGE = 5
 
 def _hooks():
     return list(ContentAssignmentRestrictionHook.registered_hooks)
+
+
+def content_lockdown_active():
+    """True when any hook asks for the stricter lockdown (see the hook)."""
+    return any(hook.lockdown_active() for hook in _hooks())
+
+
+def public_content_api_guard(view):
+    """
+    Wrap a public content API view so it returns 404 during a lockdown.
+    Apply it outside any response cache, so cached responses are blocked too.
+    """
+
+    @wraps(view)
+    def wrapped(request, *args, **kwargs):
+        if content_lockdown_active():
+            return JsonResponse(
+                {"detail": "The public content API is switched off on this server."},
+                status=404,
+            )
+        return view(request, *args, **kwargs)
+
+    return wrapped
 
 
 def _classroom_of(collection):

@@ -107,6 +107,14 @@ class ContentAssignmentRestrictionHook(KolibriHook):
             a ChannelRestriction.
         """
 
+    def lockdown_active(self):
+        """
+        True to lock content down further: signed-out users see no content
+        and the public content API (used by other servers to import from
+        this one) is switched off.
+        """
+        return False
+
     @abstractmethod
     def allowed_channel_ids_for_user(self, user):
         """

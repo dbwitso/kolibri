@@ -198,3 +198,9 @@ class GradeBandRestrictionHook(ContentAssignmentRestrictionHook):
         if not grade_bands_enforced():
             return None
         return grade_bands.allowed_channel_ids_for_learner(user)
+
+    def lockdown_active(self):
+        # LSHE centre servers have no guest access and serve no other Kolibri
+        # servers, so signed-out users see no content and the public content
+        # API is off whenever grade bands are enforced.
+        return grade_bands_enforced()

@@ -3,6 +3,7 @@ from uuid import UUID
 from django.db import connection
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
+from django.utils.decorators import method_decorator
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -10,9 +11,13 @@ from rest_framework.viewsets import GenericViewSet
 from kolibri.core.content import models
 from kolibri.core.content.constants.schema_versions import CONTENT_SCHEMA_VERSION
 from kolibri.core.content.constants.schema_versions import MIN_CONTENT_SCHEMA_VERSION
+from kolibri.core.content.utils.assignment_restrictions import (
+    public_content_api_guard,
+)
 from kolibri.core.content.utils.sqlalchemybridge import BASES
 
 
+@method_decorator(public_content_api_guard, name="dispatch")
 class ImportMetadataViewset(GenericViewSet):
     default_content_schema = CONTENT_SCHEMA_VERSION
     min_content_schema = MIN_CONTENT_SCHEMA_VERSION

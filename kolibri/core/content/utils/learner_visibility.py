@@ -10,6 +10,9 @@ from kolibri.core.content.models import ContentNode
 from kolibri.core.content.utils.assignment_restrictions import (
     allowed_channel_ids_for_user,
 )
+from kolibri.core.content.utils.assignment_restrictions import (
+    content_lockdown_active,
+)
 from kolibri.core.exams.models import Exam
 from kolibri.core.exams.models import ExamAssignment
 from kolibri.core.lessons.models import Lesson
@@ -22,7 +25,9 @@ def is_restricted_learner(user):
     :rtype: bool
     """
     if not getattr(user, "is_authenticated", False):
-        return False
+        # Signed-out users are normally unrestricted (guest access), but see
+        # nothing during a content lockdown (the LSHE deployment).
+        return content_lockdown_active()
     if user.is_superuser:
         return False
     return not user.roles.exists()
@@ -43,6 +48,8 @@ def get_assigned_content_ids(user):
     :rtype: set
     """
     content_ids = set()
+    if not getattr(user, "is_authenticated", False):
+        return content_ids
 
     lesson_ids = LessonAssignment.objects.filter(
         collection__membership__user_id=user.id, lesson__is_active=True
