@@ -105,7 +105,10 @@ class LessonViewset(ValuesViewset):
             queryset, lesson_assignment_collections="lesson_assignments__collection"
         )
 
-    @action(detail=True, methods=["post"], url_path="unlock-learner-resource")
+    # PATCH, not POST: KolibriAuthPermissions treats every POST as creating a
+    # Lesson (and refuses this body), while PATCH is checked as an update of
+    # this Lesson, which is the coach/admin rule wanted here.
+    @action(detail=True, methods=["patch"], url_path="unlock-learner-resource")
     def unlock_learner_resource(self, request, pk=None):
         """
         Remove a learner's auto-created completion lock on a resource in

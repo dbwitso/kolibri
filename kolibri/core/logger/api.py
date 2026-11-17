@@ -41,6 +41,7 @@ from kolibri.core.auth.api import KolibriAuthPermissionsFilter
 from kolibri.core.auth.models import dataset_cache
 from kolibri.core.auth.models import Facility
 from kolibri.core.content.api import OptionalPageNumberPagination
+from kolibri.core.content.utils.learner_visibility import is_restricted_learner
 from kolibri.core.decorators import query_params_required
 from kolibri.core.exams.models import Exam
 from kolibri.core.lessons.models import Lesson
@@ -281,24 +282,54 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
         # the same join) to avoid MultipleObjectsReturned when a lesson is
         # assigned to more than one collection the user is a member of.
         lesson = Lesson.objects.get(id=lesson_id)
-        locked_resource = next(
-            (
-                resource
-                for resource in lesson.resources
-                if resource.get("contentnode_id") == node_id
-                and resource.get("locked")
-            ),
-            None,
-        )
-        if locked_resource is not None:
-            raise PermissionDenied("This resource has been locked by your coach")
+        reason = self._lesson_lock_reason(user, lesson, node_id)
+        if reason:
+            raise PermissionDenied(reason)
+
+    LOCKED_BY_COACH = "This resource has been locked by your coach"
+    LOCKED_AFTER_COMPLETION = (
+        "You have already completed this resource. Ask your coach to unlock it "
+        "if you need to access it again."
+    )
+
+    def _lesson_lock_reason(self, user, lesson, node_id):
+        """Why `node_id` is locked for `user` in `lesson`, or None."""
+        if any(
+            resource.get("contentnode_id") == node_id and resource.get("locked")
+            for resource in lesson.resources
+        ):
+            return self.LOCKED_BY_COACH
         if LearnerResourceLock.objects.filter(
-            lesson_id=lesson_id, user=user, contentnode_id=node_id
+            lesson_id=lesson.id, user=user, contentnode_id=node_id
         ).exists():
-            raise PermissionDenied(
-                "You have already completed this resource. Ask your coach to unlock it "
-                "if you need to access it again."
-            )
+            return self.LOCKED_AFTER_COMPLETION
+        return None
+
+    def _check_resource_locks(self, user, node_id):
+        """
+        A resource opened without a lesson (from a direct link, say) is
+        refused to a restricted learner when it is locked in every one of
+        their active lessons that contains it - otherwise a lock could be
+        side-stepped by leaving out lesson_id. Content outside any lesson is
+        already hidden from these learners by the content API.
+        """
+        if user.is_anonymous or not is_restricted_learner(user):
+            return
+        lessons = [
+            lesson
+            for lesson in Lesson.objects.filter(
+                is_active=True,
+                lesson_assignments__collection_id__in=user.memberships.all().values(
+                    "collection_id"
+                ),
+            ).distinct()
+            if any(r.get("contentnode_id") == node_id for r in lesson.resources)
+        ]
+        reasons = [
+            self._lesson_lock_reason(user, lesson, node_id) for lesson in lessons
+        ]
+        if reasons and all(reasons):
+            raise PermissionDenied(reasons[0])
 
     def _get_context(self, user, validated_data):
         node_id = validated_data.get("node_id")
@@ -316,6 +347,8 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
             if lesson_id:
                 self._check_lesson_permissions(user, lesson_id, node_id)
                 context["lesson_id"] = lesson_id
+            else:
+                self._check_resource_locks(user, node_id)
         elif quiz_id is not None:
             self._check_quiz_permissions(user, quiz_id)
             mastery_model = {"type": exercises.QUIZ, "coach_assigned": True}

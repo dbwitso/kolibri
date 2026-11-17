@@ -6,7 +6,9 @@ export default new Resource({
     return this.fetchListCollection('size', getParams);
   },
   unlockLearnerResource(lessonId, { userId, contentnodeId } = {}) {
-    return this.postDetailEndpoint('unlock-learner-resource', lessonId, {
+    // URL names reach the frontend with "-" turned into "_"
+    // (url_path "unlock-learner-resource" on LessonViewset).
+    return this.accessDetailEndpoint('patch', 'unlock_learner_resource', lessonId, {
       user_id: userId,
       contentnode_id: contentnodeId,
     });
