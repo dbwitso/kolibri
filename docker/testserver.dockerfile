@@ -22,12 +22,16 @@ ENTRYPOINT ["python", "/docker/entrypoint.py"]
 
 # Install kolibri from source, add the postgres driver, and do a real
 # production frontend build (unlike dev.dockerfile, this image does not
-# run the webpack dev server at runtime - it serves pre-built static assets)
+# run the webpack dev server at runtime - it serves pre-built static assets).
+# "compress" writes a .gz copy of each asset, which Kolibri sends to browsers
+# that accept it: the first visit from a tablet then downloads about a
+# quarter of the bytes.
 RUN cd /kolibri \
     && pip3 install -e . \
     && pip3 install -r requirements/postgres.txt \
     && pip3 install -r requirements/lshe.txt \
-    && yarn run build
+    && yarn run build \
+    && yarn run compress
 
 # Regenerate kolibri/VERSION from the current commit (rather than leaving any
 # stale, gitignored copy that came in via `COPY . /kolibri` above). Kolibri's
