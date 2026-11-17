@@ -5,6 +5,7 @@ import useUser from 'kolibri.coreVue.composables.useUser';
 import useChannels from '../composables/useChannels';
 import { PageNames, ClassesPageNames, KolibriStudioId } from '../constants';
 import { showKnowledgemap } from '../modules/examViewer/handlers';
+import assessmentsEnabled from '../assessmentsEnabled';
 
 import classesRoutes from './classesRoutes';
 
@@ -14,8 +15,12 @@ const { isUserLoggedIn } = useUser();
 function unassignedContentGuard(next) {
   const { canAccessUnassignedContent } = store.getters;
   if (!canAccessUnassignedContent) {
-    // If there are no memberships and it is allowed, redirect to topics page
-    return next({ name: ClassesPageNames.ALL_CLASSES, replace: true });
+    // Learners who may only see assigned content go to Home, which lists
+    // their lessons. (Signed-out users have no Home, so go to classes.)
+    const name = get(isUserLoggedIn) ? PageNames.HOME : ClassesPageNames.ALL_CLASSES;
+    next({ name, replace: true });
+    // True so the caller stops: it must not go on to load the page.
+    return true;
   }
   return false;
 }
@@ -86,7 +91,10 @@ export default [
     // Handle historic channel page with redirect
     name: 'TopicsPage',
     path: '/topics/:channel_id',
-    handler: to => {
+    handler: (to, from, next) => {
+      if (unassignedContentGuard(next)) {
+        return;
+      }
       return fetchChannels().then(() => {
         const { channel_id } = to.params;
         const channel = get(channelsMap)[channel_id];
@@ -116,10 +124,10 @@ export default [
     name: PageNames.TOPICS_TOPIC_SEARCH,
     path: `/topics${optionalDeviceIdPathSegment}/t/:id/search`,
     handler: (toRoute, fromRoute, next) => {
-      showKnowledgemap(store, { contentId: toRoute.params.id });
       if (unassignedContentGuard(next)) {
         return;
       }
+      showKnowledgemap(store, { contentId: toRoute.params.id });
     },
     component: () => import(/* webpackChunkName: "TopicsPage" */ '../views/TopicsPage'),
     props: true,
@@ -128,10 +136,10 @@ export default [
     name: PageNames.TOPICS_TOPIC,
     path: `/topics${optionalDeviceIdPathSegment}/t/:id/:subtopic?/folders`,
     handler: (toRoute, fromRoute, next) => {
-      showKnowledgemap(store, { contentId: toRoute.params.id });
       if (unassignedContentGuard(next)) {
         return;
       }
+      showKnowledgemap(store, { contentId: toRoute.params.id });
     },
     component: () => import(/* webpackChunkName: "TopicsPage" */ '../views/TopicsPage'),
     props: true,
@@ -160,7 +168,7 @@ export default [
     path: '/explore_libraries',
     component: () => import(/* webpackChunkName: "ExploreLibrariesPage" */ '../views/ExploreLibrariesPage'),
     handler: (to, from, next) => {
-      if (!unassignedContentGuard(next)) {
+      if (unassignedContentGuard(next)) {
         return;
       }
       if (!get(isUserLoggedIn)) {
@@ -171,7 +179,12 @@ export default [
   },
   {
     name: PageNames.ASSESSMENT_HISTORY,
-    path:'/assessmentHistory',
+    path: '/assessmentHistory',
+    handler: (to, from, next) => {
+      if (!get(isUserLoggedIn) || !assessmentsEnabled) {
+        next({ name: PageNames.ROOT, replace: true });
+      }
+    },
     component: () => import(/* webpackChunkName: "AssessmentHistoryPage" */ '../views/AssessmentHistoryPage')
   },
   {

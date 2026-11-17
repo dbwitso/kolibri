@@ -9,13 +9,17 @@
         <KLabeledIcon icon="classes" :label="className" />
       </h1>
 
-      <AssignedLessonsCards v-if="canViewLessons" :lessons="activeLessons" />
+      <AssignedLessonsCards :lessons="activeLessons" />
       <AssignedQuizzesCards
         v-if="canViewQuizzes"
         :quizzes="activeQuizzes"
         :style="{ marginTop: '44px' }"
       />
-      <AssessmentCards :assessments="assessments" :style="{ marginTop: '44px' }" />
+      <AssessmentCards
+        v-if="assessmentsEnabled"
+        :assessments="assessments"
+        :style="{ marginTop: '44px' }"
+      />
     </div>
   </LearnAppBarPage>
 
@@ -34,6 +38,7 @@
   import { PageNames, ClassesPageNames } from '../../constants';
 
   import useLearnerResources, { getLearnerAssessments } from '../../composables/useLearnerResources';
+  import assessmentsEnabled from '../../assessmentsEnabled';
   import commonLearnStrings from './../commonLearnStrings';
   import LearnAppBarPage from './../LearnAppBarPage';
   import AssignedLessonsCards from './AssignedLessonsCards';
@@ -105,16 +110,13 @@
     data() {
       return {
         assessments: [],
+        // Lessons are always listed, as on Home: a lesson is shown to
+        // learners only while its coach keeps it visible.
+        assessmentsEnabled,
       }
     },
     computed: {
       ...mapGetters(['facilityConfig', 'isLearner', 'isCoach']),
-      canViewLessons() {
-        if (this.isLearner || this.isCoach) {
-          return Boolean(this.facilityConfig.learner_can_view_lessons);
-        }
-        return true;
-      },
       canViewQuizzes() {
         if (this.isLearner || this.isCoach) {
           return Boolean(this.facilityConfig.learner_can_view_quizzes);
@@ -139,6 +141,9 @@
       },
     },
     created() {
+      if (!assessmentsEnabled) {
+        return;
+      }
       getLearnerAssessments(this.currentUserId, this.classId).then(res => {
         this.assessments = res;
       });

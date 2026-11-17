@@ -75,7 +75,12 @@ class EdulutionAsset(webpack_hooks.WebpackBundleHook):
             "allowLearnerDownloads": get_device_setting(
                 "allow_learner_download_resources"
             ),
-            "allowLearnerUnassignedResourceAccess": allow_learner_unassigned_resource_access(),
+            # LSHE learners see only what their lessons assign, so the pages
+            # for browsing the whole library are closed to them.
+            "allowLearnerUnassignedResourceAccess": (
+                allow_learner_unassigned_resource_access()
+                and not grade_bands_enforced()
+            ),
             "enableCustomChannelNav": conf.OPTIONS["Edulution"][
                 "ENABLE_CUSTOM_CHANNEL_NAV"
             ],

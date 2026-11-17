@@ -186,7 +186,10 @@ export default {
     }
 
     fetchChannels().then(channels => {
-      if (!channels.length) {
+      // A signed-in learner with no visible lessons sees no channels (they
+      // only see assigned content), but Home is still their page: it tells
+      // them to ask their coach. Only signed-out users go to the library.
+      if (!channels.length && !get(isUserLoggedIn)) {
         router.replace({ name: PageNames.LIBRARY });
         return;
       }
@@ -264,10 +267,14 @@ export default {
     }
   },
   created() {
-    this.fetchLearnerChannels({ isLearner: this.getUserKind === UserKinds.LEARNER, 
-      userId: this.currentUserId }).then(res => {
-      this.filteredChannels = res;
-    });
+    // The channel cards are only shown to users who may browse the library,
+    // so learners limited to their lessons skip these requests.
+    if (!this.isUserLoggedIn || this.canAccessUnassignedContent) {
+      this.fetchLearnerChannels({ isLearner: this.getUserKind === UserKinds.LEARNER,
+        userId: this.currentUserId }).then(res => {
+        this.filteredChannels = res;
+      });
+    }
 
     getLearnerAssessments(this.currentUserId, null).then(res => {
       this.assessments = res;
