@@ -35,6 +35,7 @@
   import commonCoach from '../common';
   import { REPORTS_TABS_ID, ReportsTabs } from '../../constants/tabsConstants';
   import { useCoachTabs } from '../../composables/useCoachTabs';
+  import assessmentsEnabled from '../../assessmentsEnabled';
 
   export default {
     name: 'ReportsHeader',
@@ -67,7 +68,7 @@
         return this.title || this.coachString('reportsLabel');
       },
       tabs() {
-        return [
+        const tabs = [
           {
             id: ReportsTabs.OVERVIEW,
             label: this.$tr('overviewLabel'),
@@ -104,6 +105,7 @@
             to: this.classRoute('ReportsAttendanceListPage'),
           },
         ];
+        return assessmentsEnabled ? tabs : tabs.filter(tab => tab.id !== ReportsTabs.ASSESSMENT);
       },
     },
     mounted() {

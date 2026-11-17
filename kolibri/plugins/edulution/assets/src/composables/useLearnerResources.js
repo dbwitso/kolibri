@@ -15,6 +15,7 @@ import { deduplicateResources } from '../utils/contentNode';
 import { LearnerClassroomResource, LearnerLessonResource } from '../apiResources';
 import { ClassesPageNames } from '../constants';
 import useContentNodeProgress, { setContentNodeProgress } from './useContentNodeProgress';
+import assessmentsEnabled from '../assessmentsEnabled';
 
 // The refs are defined in the outer scope so they can be used as a shared store
 const _resumableContentNodes = ref([]);
@@ -60,6 +61,10 @@ export function setClasses(classData) {
 }
 
 export async function getLearnerAssessments(learnerId, classroomId) {
+  // Always a list: pages use assessments.length.
+  if (!assessmentsEnabled) {
+    return [];
+  }
   try {
     const getParams = {
       learner_id: learnerId
@@ -94,6 +99,7 @@ export async function getLearnerAssessments(learnerId, classroomId) {
       });
   } catch (error) {
     console.log("error", { error }) 
+    return [];
   }
 }
 

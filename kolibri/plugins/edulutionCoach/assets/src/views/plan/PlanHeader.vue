@@ -35,6 +35,7 @@
   import { LessonsPageNames } from '../../constants/lessonsConstants';
   import { PLAN_TABS_ID, PlanTabs } from '../../constants/tabsConstants';
   import { useCoachTabs } from '../../composables/useCoachTabs';
+  import assessmentsEnabled from '../../assessmentsEnabled';
 
   export default {
     name: 'PlanHeader',
@@ -63,7 +64,7 @@
         return LessonsPageNames;
       },
       tabs() {
-        return [
+        const tabs = [
           {
             id: PlanTabs.LESSONS,
             label: this.coreString('lessonsLabel'),
@@ -85,6 +86,7 @@
             to: this.classRoute('GroupsPage'),
           },
         ];
+        return assessmentsEnabled ? tabs : tabs.filter(tab => tab.id !== PlanTabs.ASSESSMENT);
       },
     },
     mounted() {

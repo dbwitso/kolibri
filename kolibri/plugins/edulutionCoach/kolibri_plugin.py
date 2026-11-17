@@ -51,6 +51,7 @@ class CoachAsset(webpack_hooks.WebpackBundleHook):
 
     @property
     def plugin_data(self):
+        from kolibri.core.assessment.api_permissions import assessments_disabled
         from kolibri.core.content.models import ContentNode
 
         practice_quizzes_exist = ContentNode.objects.filter(
@@ -58,6 +59,9 @@ class CoachAsset(webpack_hooks.WebpackBundleHook):
         ).exists()
         return {
             "practice_quizzes_exist": practice_quizzes_exist,
+            # False when LSHE_DISABLE_ASSESSMENTS is set: the assessments API
+            # then refuses every request, so the pages must not call it.
+            "assessments_enabled": not assessments_disabled(),
         }
 
 

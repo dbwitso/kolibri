@@ -6,6 +6,7 @@ import isFunction from 'lodash/isFunction';
 import Vue from 'kolibri.lib.vue';
 import bytesForHumans from 'kolibri.utils.bytesForHumans';
 import { ExamResource, LessonResource, AssessmentDetailsResource, AssessmentGroupResource } from 'kolibri.resources';
+import assessmentsEnabled from '../../assessmentsEnabled';
 import ClassSummaryResource from '../../apiResources/classSummary';
 import dataHelpers from './dataHelpers';
 import { STATUSES } from './constants';
@@ -630,7 +631,13 @@ export default {
       }
       return ClassSummaryResource.fetchModel({ id: classId, force: true, getParams })
         .then(async (summary) => {
-          const assessmentGroups = await AssessmentGroupResource.fetchModel({ id: classId, force: true })
+          // Assessment groups are optional: a refusal (assessments switched
+          // off) must not stop lessons, quizzes and reports from loading.
+          const assessmentGroups = assessmentsEnabled
+            ? await AssessmentGroupResource.fetchModel({ id: classId, force: true }).catch(
+                () => []
+              )
+            : [];
           store.commit('SET_STATE', { summary, assessmentGroups });
           return summary;
         })

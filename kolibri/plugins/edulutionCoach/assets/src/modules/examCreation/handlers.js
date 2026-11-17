@@ -12,6 +12,7 @@ import { assessmentMetaDataState } from 'kolibri.coreVue.vuex.mappers';
 import router from 'kolibri.coreVue.router';
 import chunk from 'lodash/chunk';
 import { PageNames } from '../../constants';
+import assessmentsEnabled from '../../assessmentsEnabled';
 import { filterAndAnnotateContentList, fetchPracticeQuizzes } from './actions';
 
 function showExamCreationPage(store, params) {
@@ -33,9 +34,15 @@ export function showExamCreationRootPage(store, params) {
       return ChannelResource.fetchCollection({
         getParams: { available: true, has_exercise: true },
       }).then(channels => {
-        return AssessmentChannelList.fetchCollection().then(items=> {
-
-        const channelmap = channels.map(data => items.results[0].channel_list.includes(data.root))
+        // Optional: with assessments switched off the API refuses, and no
+        // channel is an assessment channel.
+        const assessmentChannels = assessmentsEnabled
+          ? AssessmentChannelList.fetchCollection().catch(() => null)
+          : Promise.resolve(null);
+        return assessmentChannels.then(items => {
+        const channelList =
+          (items && items.results && items.results[0] && items.results[0].channel_list) || [];
+        const channelmap = channels.map(data => channelList.includes(data.root))
   
         let channelContentList = channelmap.map(channel => ({
           ...channel,

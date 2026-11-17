@@ -63,10 +63,14 @@ class EdulutionAsset(webpack_hooks.WebpackBundleHook):
 
     @property
     def plugin_data(self):
+        from kolibri.core.assessment.api_permissions import assessments_disabled
         from kolibri.core.discovery.well_known import CENTRAL_CONTENT_BASE_URL
         from kolibri.core.discovery.well_known import CENTRAL_CONTENT_BASE_INSTANCE_ID
 
         return {
+            # False when LSHE_DISABLE_ASSESSMENTS is set: the assessments API
+            # then refuses every request, so the pages must not call it.
+            "assessmentsEnabled": not assessments_disabled(),
             "allowGuestAccess": get_device_setting("allow_guest_access"),
             "allowLearnerDownloads": get_device_setting(
                 "allow_learner_download_resources"
