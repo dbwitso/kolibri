@@ -1,21 +1,21 @@
 # LSHE deployment files
 
-Docker setup and scripts for an LSHE (Life Skills and Health Education)
-centre server, and for collecting monthly reports centrally. The full
-procedures are in [`docs/lshe/`](../../docs/lshe/); this page covers what each
-file is for and the host settings they rely on.
+Docker set-up for an LSHE (Life Skills and Health Education) centre server:
+Edulution's Kolibri and PostgreSQL. The full procedures are in
+[`docs/lshe/`](../../docs/lshe/). This page covers what each file is for and
+the host settings they rely on.
 
-| File | Runs on | Purpose |
-| --- | --- | --- |
-| `docker-compose.yml` | centre server | Kolibri and PostgreSQL |
-| `.env.example` | centre server | Settings template. Copy it to `.env` (git-ignored). |
-| `run_monthly_report.sh` | centre server | Writes the previous month's report |
-| `systemd/lshe-report.{service,timer}` | centre server | Runs the report on the 1st at 02:00 |
-| `run_import.sh` | centre server | MindSpark roster import: dry run, backup, then `--apply` |
-| `mindspark_class_probe.js` | MindSpark server | Shows how learners link to classes, without personal data |
-| `central/collect_reports.sh` | central machine | Pulls report files from every centre |
-| `central/combine_reports.py` | central machine | One file per month, all-centre totals, missing centres |
-| `central/centres.conf.example` | central machine | List of centres |
+| File | Purpose |
+| --- | --- |
+| `docker-compose.yml` | Kolibri and PostgreSQL |
+| `.env.example` | Settings template. Copy it to `.env` (git-ignored). |
+
+The scripts that run a centre are in the separate **kolibri_helper_scripts**
+repository, in `lshe/`: the MindSpark roster import, channel import, grade
+bands, the monthly report and its timer, and central report collection. The
+compose file mounts that repository, read-only, into the Kolibri container at
+`/opt/kolibri_helper_scripts`. Its shell scripts run on the host and call its
+Python scripts inside the container. See `lshe/README.md` there.
 
 ## Centre server
 
@@ -27,6 +27,8 @@ file is for and the host settings they rely on.
 # server (for example MindSpark) depends on it.
 sudo timedatectl set-timezone Africa/Lusaka
 sudo mkdir -p /srv/lshe-reports /srv/lshe-content /srv/lshe-backups /var/log/lshe
+# The helper scripts, mounted into the container (LSHE_HELPER_SCRIPTS_DIR).
+sudo git clone -b develop https://github.com/dbwitso/kolibri_helper_scripts.git /opt/lshe/kolibri_helper_scripts
 # From the repository root: build the base image once per server. It is not
 # on Docker Hub. Rebuild it when requirements/ or package.json change.
 docker build -f docker/base.dockerfile -t learningequality/kolibribase .
@@ -39,6 +41,12 @@ The compose file refuses to start until `.env` sets the database password,
 the superuser password, `KOLIBRI_CENTRE_CODE` and `LSHE_BIND_IP`. Without a
 superuser password, `docker/entrypoint.py` would use its default
 (`admin123`).
+
+If `/opt/lshe/kolibri_helper_scripts` doesn't exist when the containers
+start, Docker creates it empty and the helper scripts report that they
+can't find their files. Clone the repository (or set
+`LSHE_HELPER_SCRIPTS_DIR` to where it is), then run `docker compose up -d`
+again.
 
 ### Ports and firewall
 
@@ -65,98 +73,29 @@ Kolibri's Docker network, `172.30.50.1` (with the default
 `LSHE_DOCKER_SUBNET`), in `MINDSPARK_MONGO_URI`. It doesn't change when the
 server's LAN address does. Make sure MongoDB has `security.authorization:
 enabled`, because a `0.0.0.0` binding exposes it to every network the server
-is on. Then skip to step 3 below (the read-only user).
+is on.
 
 **MongoDB on another machine:** set `MINDSPARK_MONGO_URI` to that machine's
-LAN address. On the MindSpark server:
+LAN address. On the MindSpark server, `mongod.conf` → `net.bindIp` must
+include that address (for example `bindIp: 127.0.0.1,192.168.1.10`), and the
+firewall should allow port 27017 from the Kolibri server only.
 
-1. `mongod.conf` → `net.bindIp` must include that LAN address, e.g.
-   `bindIp: 127.0.0.1,192.168.1.10`. Restart `mongod`.
-2. Allow only the Kolibri containers' subnet (`LSHE_DOCKER_SUBNET`, default
-   `172.30.50.0/24`) when MongoDB is on the same box, or only the Kolibri
-   server's address otherwise:
-   `sudo ufw allow from 172.30.50.0/24 to any port 27017 proto tcp`
-3. Create a read-only user and put it in the URI:
+In both cases, use **MindSpark's existing login** in the URI. The import only
+reads `UserManagement` and `UserAuthentication`. Don't create or change
+MindSpark users, and don't write to MindSpark.
 
-   ```js
-   db.getSiblingDB("admin").createUser({
-     user: "kolibri_reader",
-     pwd: passwordPrompt(),
-     roles: [
-       { role: "read", db: "UserManagement" },
-       { role: "read", db: "UserAuthentication" },
-     ],
-   })
-   ```
+Check the connection with a dry run, which changes nothing:
+`sudo /opt/lshe/kolibri_helper_scripts/lshe/run_import.sh`.
 
-Check it from the server with
-`docker exec lshe-kolibri kolibri manage importfrommindspark --dryrun`.
+### Scripts
 
-### Monthly report timer
+Everything run on a schedule or by hand is in kolibri_helper_scripts
+(`lshe/README.md`):
 
-```sh
-sudo cp systemd/lshe-report.service systemd/lshe-report.timer /etc/systemd/system/
-# edit ExecStart in lshe-report.service if the repository is not in /opt/lshe/kolibri
-sudo systemctl daemon-reload
-sudo systemctl enable --now lshe-report.timer
-systemctl list-timers lshe-report.timer
-```
-
-The timer fires at 02:00 **Lusaka time** (`OnCalendar=… Africa/Lusaka`)
-whatever zone the server's clock is set to. `Persistent=true` makes a missed run (server off at 02:00 on the 1st) happen
-at the next boot. To run by hand: `sudo ./run_monthly_report.sh [YYYY-MM]`.
-Re-running a month overwrites its file with the same figures. The log is in
-`/var/log/lshe/report.log`.
-
-As a cron alternative to the timer, set the zone in the crontab, because cron
-otherwise uses the server's zone:
-
-```
-CRON_TZ=Africa/Lusaka
-0 2 1 * * /opt/lshe/kolibri/docker/lshe/run_monthly_report.sh
-```
-
-### Read-only user for report collection
-
-The central machine connects as `lshe-reports`, which can only read
-`/srv/lshe-reports`:
-
-```sh
-sudo adduser --system --group --shell /bin/sh lshe-reports
-sudo chgrp -R lshe-reports /srv/lshe-reports && sudo chmod -R g+rX,o-rwx /srv/lshe-reports
-sudo install -d -m 700 -o lshe-reports -g lshe-reports ~lshe-reports/.ssh
-# One line in ~lshe-reports/.ssh/authorized_keys (the central machine's public key):
-#   command="rrsync -ro /srv/lshe-reports",restrict ssh-ed25519 AAAA... lshe-central
-```
-
-`rrsync` comes with rsync. On older Ubuntu releases it is
-`/usr/share/doc/rsync/scripts/rrsync` and needs copying to `/usr/local/bin`.
-With this key restriction, the user can't open a shell, write files or read
-anything outside `/srv/lshe-reports`.
-
-### Roster import
-
-```sh
-./run_import.sh --org-id <ORG>                    # dry run: counts only
-./run_import.sh --apply --org-id <ORG>            # backup, then import
-./run_import.sh --apply --org-id <ORG> --remove-inactive   # end of term
-```
-
-Backups go to `/srv/lshe-backups`, and the log to `/var/log/lshe/import.log`.
-
-## Central machine
-
-```sh
-cd docker/lshe/central
-cp centres.conf.example centres.conf   # one line per centre
-LSHE_SSH_KEY=~/.ssh/lshe_reports ./collect_reports.sh
-python3 combine_reports.py --month 2027-03
-```
-
-`collect_reports.sh` skips a centre it can't reach, carries on with the
-rest, and exits non-zero if any centre failed. `combine_reports.py` writes
-`combined/lshe_ALL_<month>.csv` and `combined/lshe_ALL_<month>_status.json`.
-It also lists centres that are missing, invalid, or that reported a partial
-month.
-
-Tests: `python3 -m pytest central/test_combine_reports.py`.
+| Task | Script (in `/opt/lshe/kolibri_helper_scripts/lshe`) |
+| --- | --- |
+| Import learners and classes from MindSpark | `run_import.sh` (dry run), `run_import.sh --apply` |
+| Import channels | `import_channels.sh --file channels.conf` |
+| Grade bands | `run_script.sh set_band_channels.py …`, `run_script.sh set_class_band.py …` |
+| Monthly report | `run_monthly_report.sh`, run by `systemd/lshe-report.timer` |
+| Central report collection | `central/collect_reports.sh`, `central/combine_reports.py` |

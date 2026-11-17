@@ -73,15 +73,16 @@ server's clock uses. If the server is off at
 that time, the report runs when it next starts. To run it by hand:
 
 ```sh
-sudo /opt/lshe/kolibri/docker/lshe/run_monthly_report.sh            # previous month
-sudo /opt/lshe/kolibri/docker/lshe/run_monthly_report.sh 2027-03    # a given month
+sudo /opt/lshe/kolibri_helper_scripts/lshe/run_monthly_report.sh            # previous month
+sudo /opt/lshe/kolibri_helper_scripts/lshe/run_monthly_report.sh 2027-03    # a given month
 ```
 
 The log is at `/var/log/lshe/report.log`.
 
 ## Collection
 
-On the provider's central machine, `docker/lshe/central/collect_reports.sh`
+On the provider's central machine, `lshe/central/collect_reports.sh`
+(kolibri_helper_scripts)
 pulls each centre's report files over the VPN with `rsync` over SSH. The
 list of centres is in `centres.conf`: code, host, and optionally the port
 and user.
@@ -89,7 +90,7 @@ and user.
 On each centre, the account it uses (`lshe-reports`) is limited by its SSH
 key to **read-only** access to `/srv/lshe-reports`. It can't open a shell,
 write anything or read anything else. Setup is in
-`docker/lshe/README.md`.
+kolibri_helper_scripts' `lshe/README.md`.
 
 A centre that can't be reached is logged and skipped, and the others still
 run. The script ends with an error status if any centre failed, so the
@@ -99,7 +100,7 @@ centrally, even if a centre loses them.
 ## Combining
 
 ```sh
-python3 docker/lshe/central/combine_reports.py --month 2027-03
+python3 lshe/central/combine_reports.py --month 2027-03
 ```
 
 This writes `combined/lshe_ALL_2027-03.csv`, with every centre's rows plus

@@ -53,8 +53,13 @@ such as UFW, so that binding is what keeps them off other interfaces.
    server depends on it.
 2. Get the source at the release tag to deploy, for example
    `git clone <repository> /opt/lshe/kolibri && cd /opt/lshe/kolibri && git checkout <tag>`.
-3. Create the host folders:
-   `sudo mkdir -p /srv/lshe-reports /srv/lshe-content /srv/lshe-backups /var/log/lshe`.
+3. Create the host folders, and get the helper scripts at the matching
+   release:
+   `sudo mkdir -p /srv/lshe-reports /srv/lshe-content /srv/lshe-backups /var/log/lshe`,
+   then
+   `git clone <helper scripts repository> /opt/lshe/kolibri_helper_scripts`.
+   The compose file mounts that folder into the Kolibri container. If it is
+   somewhere else, set `LSHE_HELPER_SCRIPTS_DIR` in `.env` (step 6).
 4. Check that ports 8080 and 8081 are free:
    `sudo ss -ltnp | grep -E ':(8080|8081)\b'`. If 8081 is taken, choose
    another port for `LSHE_ZIP_PORT` in the next step.
@@ -71,8 +76,9 @@ such as UFW, so that binding is what keeps them off other interfaces.
 8. Open `http://<LSHE_BIND_IP>:8080` from a tablet.
 
 [`docker/lshe/README.md`](../../docker/lshe/README.md) covers the MindSpark
-connection, firewall settings, the report timer and the read-only
-report-collection account.
+connection and firewall settings. kolibri_helper_scripts' `lshe/README.md`
+covers the scripts, the report timer and the read-only report-collection
+account.
 
 ## Provisioning (formal preset)
 
@@ -97,19 +103,24 @@ LSHE channels and the teacher channels are imported from disk, or from a
 distribution server on the network. Note the channel IDs; you need them for
 bands and settings.
 
-From disk (channel packs copied to `/srv/lshe-content` on the host):
+List the channel IDs in `lshe/channels.conf` (copy
+`channels.conf.example`), one per line. Then, from disk (channel packs
+copied to `/srv/lshe-content` on the host):
 
 ```sh
-docker exec lshe-kolibri kolibri manage importchannel disk <channel_id> /srv/lshe-content
-docker exec lshe-kolibri kolibri manage importcontent disk <channel_id> /srv/lshe-content
+cd /opt/lshe/kolibri_helper_scripts/lshe
+sudo ./import_channels.sh --file channels.conf
 ```
 
-From a peer server on the network:
+or from a peer server on the network:
 
 ```sh
-docker exec lshe-kolibri kolibri manage importchannel network <channel_id> --baseurl http://<peer>:8080
-docker exec lshe-kolibri kolibri manage importcontent network <channel_id> --baseurl http://<peer>:8080
+sudo ./import_channels.sh --network http://<peer>:8080 --file channels.conf
 ```
+
+Each channel is imported, then all its content (Kolibri's `importchannel`
+and `importcontent`, run in the container). Re-running is safe. The log is
+in `/var/log/lshe/channels.log`.
 
 A centre server can't act as that peer. LSHE servers switch off Kolibri's
 public content API (see "Content lockdown" below), so imports from one
@@ -128,17 +139,19 @@ only ever see assigned content from their band's channels. A class with no
 band can be assigned nothing.
 
 ```sh
-K="docker exec lshe-kolibri kolibri manage"
-$K setbandchannels --band G4-5 <channel_id> [<channel_id> ...]   # replaces the list
-$K setbandchannels --band G6-7 <channel_id> [<channel_id> ...]
-$K setclassband --class "Grade 4 A" --band G4-5
-$K setclassband --class "Grade 6 A" --band G6-7
-$K setclassband --list          # bands, channels and classes
+cd /opt/lshe/kolibri_helper_scripts/lshe
+sudo ./run_script.sh set_band_channels.py --band G4-5 <channel_id> [<channel_id> ...]   # replaces the list
+sudo ./run_script.sh set_band_channels.py --band G6-7 <channel_id> [<channel_id> ...]
+sudo ./run_script.sh set_class_band.py --class "Grade 4 A" --band G4-5
+sudo ./run_script.sh set_class_band.py --class "Grade 6 A" --band G6-7
+sudo ./run_script.sh set_class_band.py --list    # bands, channels, and classes with no band
 ```
 
-`setclassband --class-id <id>` is for classes that share a name. Teacher
-channels are refused by `setbandchannels`. Set up bands after the roster
-import has created the classes, and before teachers start assigning.
+`set_class_band.py --class-id <id>` is for classes that share a name.
+`set_band_channels.py` refuses teacher channels. Set up bands after the
+roster import has created the classes, and before teachers start assigning.
+The bands are stored in Kolibri's database, and Kolibri enforces them. The
+scripts only set them.
 
 Grade bands and the content lockdown are on unless `LSHE_GRADE_BANDS=off`,
 which is only for servers outside the LSHE pilot.
@@ -192,8 +205,8 @@ not been done, so treat file URLs as shareable.
 
 ## Backup and restore
 
-Back up before every upgrade or roster import (`run_import.sh --apply` does
-this itself), and on a regular schedule:
+Back up before every upgrade or roster import (`lshe/run_import.sh --apply`
+does this itself), and on a regular schedule:
 
 ```sh
 docker exec lshe-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
@@ -223,7 +236,10 @@ docker compose start kolibri
 
 1. Back up the database (above).
 2. `git fetch && git checkout <new tag>`, then `docker compose up -d --build`.
-   Kolibri applies database migrations on start.
+   Kolibri applies database migrations on start. Update the helper scripts
+   to the matching release too (`git pull` in
+   `/opt/lshe/kolibri_helper_scripts`): they use Kolibri's models, so keep
+   the two in step.
 3. Run the relevant checks from the acceptance checklist.
 
 Migrations only run forward. To roll back, check out the previous tag,

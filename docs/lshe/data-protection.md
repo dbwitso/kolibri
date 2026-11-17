@@ -22,7 +22,7 @@ All of it is on the centre server, in the PostgreSQL database
 | Roles | Teachers, admins | Admin | Access control |
 | Activity logs: content opened, time spent, progress, quiz answers | Learners | Kolibri | Learner progress, teacher reports, monthly figures |
 | Session logs: sign-in times, pages, browser and device type | All users | Kolibri | Monthly session figures |
-| Monthly class record: Kolibri user ID, class name, gender, per reported month | Learners | `lshereport` | Keeps re-run reports identical. No names |
+| Monthly class record: Kolibri user ID, class name, gender, per reported month | Learners | The monthly report (`lshe_report.py`) | Keeps re-run reports identical. No names |
 
 Not stored: learners' full dates of birth, MindSpark passwords, contact
 details, parents' details or photos.

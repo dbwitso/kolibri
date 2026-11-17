@@ -17,7 +17,7 @@ Record for each check: date, server (centre code), tester, result
 | # | Check | How | Expected |
 | --- | --- | --- | --- |
 | 1.1 | Formal preset | Facility → Settings | Learners sign in with no password; learners cannot edit their account; guest access off |
-| 1.2 | Bands set | `kolibri manage setclassband --list` | Every class is in a band; every band lists its LSHE channels; no teacher channel in any band |
+| 1.2 | Bands set | `lshe/run_script.sh set_class_band.py --list` | Every class is in a band; every band lists its LSHE channels; no teacher channel in any band |
 | 1.3 | Teacher channels configured | `.env` has `LSHE_TEACHER_CHANNEL_IDS` | The IDs of every teacher channel |
 | 1.4 | Ports | From a tablet: `http://<server>:8080` and `http://<server>:<LSHE_ZIP_PORT>` (default 8081) | Both answer. The zip port shows an error page for the bare address; that is normal |
 | 1.5 | No other exposure | From a device on another network (VPN): ports 8080, the zip port, 5432 | Not reachable |
@@ -62,7 +62,7 @@ Sign in on a tablet as the `Grade 4 A` test learner.
 
 Use a test learner in a test class, and run the report for the current month
 (partial reports are allowed and are not saved for later months):
-`sudo docker/lshe/run_monthly_report.sh <YYYY-MM>`.
+`sudo lshe/run_monthly_report.sh <YYYY-MM>` (in kolibri_helper_scripts).
 
 | # | Check | How | Expected |
 | --- | --- | --- | --- |
@@ -86,7 +86,7 @@ Use a test learner in a test class, and run the report for the current month
 
 | # | Check | How | Expected |
 | --- | --- | --- | --- |
-| 8.1 | Roster dry run | `docker/lshe/run_import.sh --org-id <ORG>` | Counts printed; nothing changed (learner count before and after is the same) |
+| 8.1 | Roster dry run | `lshe/run_import.sh --org-id <ORG>` | Counts printed; nothing changed (learner count before and after is the same) |
 | 8.2 | Backup and restore | Take a backup, restore it to a scratch database or a spare server | Restore succeeds; users and classes present |
 | 8.3 | Report timer | `systemctl list-timers lshe-report.timer` | Next run on the 1st at 02:00 |
 | 8.4 | Restart | Reboot the server | Kolibri is back without manual steps; learners can sign in |

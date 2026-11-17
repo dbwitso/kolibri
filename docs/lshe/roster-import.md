@@ -7,7 +7,8 @@ Nothing is written back, and no report is linked to MindSpark.
 
 ## How the import works
 
-`kolibri manage importfrommindspark` connects to MindSpark's MongoDB and:
+`import_from_mindspark.py` (kolibri_helper_scripts, `lshe/`) runs inside the
+Kolibri container. It connects to MindSpark's MongoDB and:
 
 1. Reads learners from `UserManagement.UserDetails` (name, gender, date of
    birth, status, organisation) and their usernames from
@@ -68,12 +69,13 @@ classes mid-term changes which lessons they see and which class their
 activity counts towards in reports.
 
 After an import that creates classes, set the new classes' grade bands
-(`setclassband`, see [deployment.md](deployment.md)). A class with no band
+(`set_class_band.py`, see [deployment.md](deployment.md)). A class with no band
 can't be given any lessons.
 
 ## Running it
 
-Use the wrapper on the centre server, from `docker/lshe/`:
+Use the wrapper on the centre server, from
+`/opt/lshe/kolibri_helper_scripts/lshe/`, as root:
 
 ```sh
 ./run_import.sh --org-id <ORG>            # dry run: shows the counts, changes nothing
@@ -110,8 +112,9 @@ already set up usually means the wrong `--org-id`.
 - MindSpark's MongoDB must be reachable from the Kolibri container. Inside
   the container, `127.0.0.1` is the container, not the host. See
   `docker/lshe/README.md` for `bindIp` and firewall settings.
-- Use a MongoDB account with the `read` role only, on `UserManagement` and
-  `UserAuthentication`.
+- Use MindSpark's existing login in `MINDSPARK_MONGO_URI` (in
+  `docker/lshe/.env`). The import only reads `UserManagement` and
+  `UserAuthentication`. Don't create or change MindSpark users for it.
 - The facility should use the formal preset. The import warns if learners
   would need a password.
 

@@ -16,4 +16,10 @@ any capable provider taking over or replicating the deployment.
 - [acceptance-checklist.md](acceptance-checklist.md): checks to sign off
   before learners use a server
 
-Deployment files and scripts are in [`docker/lshe/`](../../docker/lshe/).
+The Docker set-up is in [`docker/lshe/`](../../docker/lshe/). The scripts
+that run a centre (roster import, channel import, grade bands, the monthly
+report and central collection) are in the separate **kolibri_helper_scripts**
+repository, in `lshe/`. On a centre server it is checked out at
+`/opt/lshe/kolibri_helper_scripts`, and mounted read-only into the Kolibri
+container. Commands in these pages that start with `lshe/` are in that
+repository.
