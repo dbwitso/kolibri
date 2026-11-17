@@ -305,6 +305,19 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
             return self.LOCKED_AFTER_COMPLETION
         return None
 
+    def _active_lessons_with(self, user, node_id):
+        """The user's active assigned lessons that contain `node_id`."""
+        return [
+            lesson
+            for lesson in Lesson.objects.filter(
+                is_active=True,
+                lesson_assignments__collection_id__in=user.memberships.all().values(
+                    "collection_id"
+                ),
+            ).distinct()
+            if any(r.get("contentnode_id") == node_id for r in lesson.resources)
+        ]
+
     def _check_resource_locks(self, user, node_id):
         """
         A resource opened without a lesson (from a direct link, say) is
@@ -315,16 +328,7 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
         """
         if user.is_anonymous or not is_restricted_learner(user):
             return
-        lessons = [
-            lesson
-            for lesson in Lesson.objects.filter(
-                is_active=True,
-                lesson_assignments__collection_id__in=user.memberships.all().values(
-                    "collection_id"
-                ),
-            ).distinct()
-            if any(r.get("contentnode_id") == node_id for r in lesson.resources)
-        ]
+        lessons = self._active_lessons_with(user, node_id)
         reasons = [
             self._lesson_lock_reason(user, lesson, node_id) for lesson in lessons
         ]
@@ -905,6 +909,25 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
             log.time_spent += validated_data["time_spent_delta"]
         return update_fields
 
+    def _lock_after_completion(self, user, context):
+        """
+        Lock a resource the learner has just completed, so they need their
+        coach to open it again. The learner player does not send the lesson,
+        so for a restricted learner it is locked in every active lesson of
+        theirs that contains it (matching _check_resource_locks).
+        """
+        node_id = context["node_id"]
+        if "lesson_id" in context:
+            lesson_ids = [context["lesson_id"]]
+        elif is_restricted_learner(user):
+            lesson_ids = [l.id for l in self._active_lessons_with(user, node_id)]
+        else:
+            return
+        for lesson_id in lesson_ids:
+            LearnerResourceLock.objects.get_or_create(
+                lesson_id=lesson_id, user=user, contentnode_id=node_id
+            )
+
     def _update_summary_log(
         self, user, sessionlog, end_timestamp, validated_data, context
     ):
@@ -923,12 +946,8 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
             summarylog.completion_timestamp = end_timestamp
             update_fields += ("completion_timestamp",)
             self._process_completed_notification(summarylog, context)
-            if "lesson_id" in context and "node_id" in context:
-                LearnerResourceLock.objects.get_or_create(
-                    lesson_id=context["lesson_id"],
-                    user=user,
-                    contentnode_id=context["node_id"],
-                )
+            if "node_id" in context:
+                self._lock_after_completion(user, context)
         if "extra_fields" in validated_data:
             update_fields += ("extra_fields",)
             summarylog.extra_fields = validated_data["extra_fields"]

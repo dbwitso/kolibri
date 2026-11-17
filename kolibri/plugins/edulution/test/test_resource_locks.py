@@ -164,3 +164,38 @@ class UnlockLearnerResourceTestCase(BandFixture, APITestCase):
         )
         self.assertIn(response.status_code, (403, 404))
         self.assertTrue(LearnerResourceLock.objects.exists())
+
+
+@override_settings(LSHE_GRADE_BANDS="on")
+class CompletionLockTestCase(ResourceLockTestCase):
+    """Finishing a resource locks it, as the learner player opens it."""
+
+    def finish(self, lesson=None):
+        response = self.start(lesson)
+        self.assertEqual(response.status_code, 200)
+        update = self.client.put(
+            reverse(
+                "kolibri:core:trackprogress-detail",
+                kwargs={"pk": response.data["session_id"]},
+            ),
+            {"progress_delta": 1, "time_spent_delta": 200},
+            format="json",
+        )
+        self.assertEqual(update.status_code, 200)
+
+    def test_locks_without_lesson_id(self):
+        lesson = self.lesson()
+        hidden = self.lesson(active=False)
+        self.finish()
+        self.assertTrue(
+            LearnerResourceLock.objects.filter(
+                lesson=lesson, user=self.learner
+            ).exists()
+        )
+        self.assertFalse(LearnerResourceLock.objects.filter(lesson=hidden).exists())
+        self.assertEqual(self.start().status_code, 403)
+
+    def test_locks_with_lesson_id(self):
+        lesson = self.lesson()
+        self.finish(lesson)
+        self.assertEqual(LearnerResourceLock.objects.get().lesson_id, lesson.id)
