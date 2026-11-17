@@ -376,3 +376,67 @@ class GradeBandLearnerVisibilityTestCase(BandFixture, TestCase):
             reverse("kolibri:core:contentnode-detail", kwargs={"pk": self.g45_video.id})
         )
         self.assertEqual(response.status_code, 200)
+
+
+@override_settings(LSHE_GRADE_BANDS="on")
+class RestrictedLearnerCacheTestCase(BandFixture, APITestCase):
+    """
+    Cached content lists follow what a learner may see: a lesson assigned
+    after the learner opened the library shows at once, and the browser's
+    ETag no longer matches.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.build()
+        cls.learner.set_password(PASSWORD)
+        cls.learner.save()
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client.login(
+            username=self.learner.username, password=PASSWORD, facility=self.facility
+        )
+        self.url = reverse("kolibri:core:channel-list")
+
+    def channel_ids(self, response):
+        self.assertEqual(response.status_code, 200)
+        return {c["id"] for c in response.json()}
+
+    def test_new_lesson_shows_despite_cache(self):
+        before = self.client.get(self.url)
+        self.assertEqual(self.channel_ids(before), set())
+        lesson = Lesson.objects.create(
+            title="Friendship",
+            collection=self.lower,
+            created_by=self.coach,
+            is_active=True,
+            resources=[
+                {
+                    "contentnode_id": self.g45_video.id,
+                    "channel_id": self.g45_video.channel_id,
+                    "content_id": self.g45_video.content_id,
+                }
+            ],
+        )
+        LessonAssignment.objects.create(
+            lesson=lesson, collection=self.lower, assigned_by=self.coach
+        )
+
+        after = self.client.get(self.url)
+        self.assertEqual(self.channel_ids(after), {self.g45_channel})
+        self.assertNotEqual(before["ETag"], after["ETag"])
+        # The browser's copy from before the lesson must not be reused.
+        revalidated = self.client.get(self.url, HTTP_IF_NONE_MATCH=before["ETag"])
+        self.assertEqual(self.channel_ids(revalidated), {self.g45_channel})
+
+        lesson.is_active = False
+        lesson.save()
+        self.assertEqual(self.channel_ids(self.client.get(self.url)), set())
+
+    def test_unchanged_visibility_still_revalidates(self):
+        first = self.client.get(self.url)
+        again = self.client.get(self.url, HTTP_IF_NONE_MATCH=first["ETag"])
+        self.assertEqual(again.status_code, 304)

@@ -102,12 +102,44 @@ def get_cache_key(*args, **kwargs):
     return str(ContentCacheKey.get_cache_key())
 
 
+def _visibility_key(request):
+    """
+    None, unless the user is a restricted learner: then a fingerprint of the
+    content they may see (see learner_visibility).
+
+    Their responses depend on lessons, quizzes, class membership and grade
+    bands, and none of those change ContentCacheKey. So the fingerprint goes
+    into the server cache key and the ETag. Otherwise a learner who opened
+    the library before a lesson was assigned to them keeps getting the old,
+    empty answer (the server cache for an hour, the browser until the next
+    channel import).
+    """
+    if request is None:
+        return None
+    if not hasattr(request, "_content_visibility_key"):
+        key = None
+        user = getattr(request, "user", None)
+        if user is not None and is_restricted_learner(user):
+            ids = sorted(get_assigned_content_ids(user))
+            key = hashlib.md5(",".join(ids).encode("utf-8")).hexdigest()
+        request._content_visibility_key = key
+    return request._content_visibility_key
+
+
+def get_etag(request, *args, **kwargs):
+    """The ETag of a content metadata response: see _visibility_key."""
+    visibility = _visibility_key(request)
+    if visibility is None:
+        return get_cache_key()
+    return "{}:{}".format(get_cache_key(), visibility)
+
+
 def metadata_cache(view_func):
     """
     Decorator for patch_response_headers function
     """
 
-    @etag(get_cache_key)
+    @etag(get_etag)
     def wrapper_func(*args, **kwargs):
         try:
             request = args[0]
@@ -124,10 +156,13 @@ def metadata_cache(view_func):
         # is otherwise safely shared across everyone since content metadata is
         # normally identical for all users, would serve one restricted
         # learner's personally-filtered response to a different learner, or
-        # keep serving a stale empty response after new content is assigned.
-        user = getattr(request, "user", None)
-        if user is not None and is_restricted_learner(user):
-            cache_key = "{}:{}:{}".format(key_prefix, url_key, user.id)
+        # keep serving a stale empty response after new content is assigned
+        # (the visibility key changes whenever what they may see changes).
+        visibility = _visibility_key(request)
+        if visibility is not None:
+            cache_key = "{}:{}:{}:{}".format(
+                key_prefix, url_key, request.user.id, visibility
+            )
         else:
             cache_key = "{}:{}".format(key_prefix, url_key)
         response = cache.get(cache_key)
@@ -1502,7 +1537,7 @@ class ContentRequestViewset(ReadOnlyValuesViewset, CreateModelMixin):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@method_decorator(etag(get_cache_key), name="retrieve")
+@method_decorator(etag(get_etag), name="retrieve")
 class ContentNodeGranularViewset(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = serializers.ContentNodeGranularSerializer
 
