@@ -19,9 +19,10 @@ class LSHEMonthlyEnrolment(models.Model):
     """
     Which class (and gender) each learner was in for a reported month.
 
-    Kolibri keeps no history of class memberships, so `lshereport` takes this
-    snapshot the first time a finished month is reported and reuses it on
-    every re-run, which keeps the monthly figures the same.
+    Kolibri keeps no history of class memberships, so the monthly report
+    (lshe_report.py in kolibri_helper_scripts) takes this snapshot the first
+    time a finished month is reported and reuses it on every re-run, which
+    keeps the monthly figures the same.
 
     Holds no names, usernames or birth years: only the Kolibri user id (so the
     report can join activity logs), the class name and gender. Rows are

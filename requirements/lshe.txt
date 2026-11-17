@@ -1,4 +1,5 @@
 # Runtime requirements for the LSHE (UNESCO pilot) deployment.
 # pymongo reads the learner roster from MindSpark's MongoDB (read-only) in
-# `kolibri manage importfrommindspark`. pymongo 4.x needs MongoDB server >= 3.6.
+# import_from_mindspark.py (kolibri_helper_scripts, lshe/), which runs inside
+# the LSHE Kolibri container. pymongo 4.x needs MongoDB server >= 3.6.
 pymongo==4.6.3

@@ -6,13 +6,10 @@ bad assignment exists. All data here is invented.
 """
 import uuid
 
-from django.core.management import call_command
-from django.core.management.base import CommandError
 from django.test import override_settings
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase
-from six import StringIO
 
 from kolibri.core import error_constants
 from kolibri.core.auth.models import Classroom
@@ -27,8 +24,6 @@ from kolibri.core.exams.models import Exam
 from kolibri.core.exams.models import ExamAssignment
 from kolibri.core.lessons.models import Lesson
 from kolibri.core.lessons.models import LessonAssignment
-from kolibri.plugins.edulution.management.commands import setbandchannels
-from kolibri.plugins.edulution.management.commands import setclassband
 from kolibri.plugins.edulution.models import ClassroomBand
 from kolibri.plugins.edulution.models import GradeBandChannel
 
@@ -381,90 +376,3 @@ class GradeBandLearnerVisibilityTestCase(BandFixture, TestCase):
             reverse("kolibri:core:contentnode-detail", kwargs={"pk": self.g45_video.id})
         )
         self.assertEqual(response.status_code, 200)
-
-
-class GradeBandCommandsTestCase(BandFixture, TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.build()
-
-    def run_command(self, command, *args):
-        out = StringIO()
-        call_command(command.Command(), *args, stdout=out)
-        return out.getvalue()
-
-    def test_setbandchannels_replaces_list(self):
-        new = uuid.uuid4()
-        out = self.run_command(
-            setbandchannels, "--band", "G4-5", str(new), self.g45_channel
-        )
-        self.assertEqual(
-            set(
-                GradeBandChannel.objects.filter(band="G4-5").values_list(
-                    "channel_id", flat=True
-                )
-            ),
-            {new.hex, self.g45_channel},
-        )
-        self.assertIn("not imported", out)
-
-    def test_setbandchannels_refuses_teacher_channel(self):
-        teacher = uuid.uuid4().hex
-        with override_settings(LSHE_TEACHER_CHANNEL_IDS=teacher):
-            with self.assertRaises(CommandError):
-                self.run_command(setbandchannels, "--band", "G4-5", teacher)
-
-    def test_setbandchannels_rejects_bad_input(self):
-        for args in (
-            ["--band", "G4-5", "not-a-uuid"],
-            ["--band", "bad band!", self.g45_channel],
-            ["--band", "G4-5"],
-        ):
-            with self.assertRaises(CommandError):
-                self.run_command(setbandchannels, *args)
-
-    def test_setclassband_by_name_and_clear(self):
-        self.run_command(
-            setclassband,
-            "--class",
-            "Grade 5 B",
-            "--band",
-            "G4-5",
-            "--facility",
-            self.facility.id,
-        )
-        self.assertEqual(
-            ClassroomBand.objects.get(classroom=self.unbanded).band, "G4-5"
-        )
-        self.run_command(
-            setclassband,
-            "--class",
-            "Grade 5 B",
-            "--band",
-            "G6-7",
-            "--facility",
-            self.facility.id,
-        )
-        self.assertEqual(
-            ClassroomBand.objects.get(classroom=self.unbanded).band, "G6-7"
-        )
-        self.run_command(setclassband, "--class-id", self.unbanded.id, "--clear")
-        self.assertFalse(ClassroomBand.objects.filter(classroom=self.unbanded).exists())
-
-    def test_setclassband_unknown_class(self):
-        with self.assertRaises(CommandError):
-            self.run_command(
-                setclassband,
-                "--class",
-                "Nope",
-                "--band",
-                "G4-5",
-                "--facility",
-                self.facility.id,
-            )
-
-    def test_list(self):
-        out = self.run_command(setclassband, "--list")
-        self.assertIn("G4-5", out)
-        self.assertIn("Grade 4 A", out)
-        self.assertIn("LSHE G6-7", out)

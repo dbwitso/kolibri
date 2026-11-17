@@ -8,8 +8,9 @@
 #   cp .env.example .env     # then fill it in; .env is git-ignored
 #   docker compose up -d --build
 #
-# See README.md for MindSpark (MongoDB) access, firewall notes and the
-# report/import scripts.
+# See README.md for MindSpark (MongoDB) access and firewall notes. The
+# import, band and report scripts are in kolibri_helper_scripts (lshe/),
+# mounted into the Kolibri container below.
 
 name: lshe
 
@@ -77,8 +78,11 @@ services:
       - kolibrihome:/kolibrihome
       # Monthly report CSVs, read by the host's timer and collected centrally.
       - /srv/lshe-reports:/srv/lshe-reports
-      # Channel packs for `kolibri manage importchannel disk` / `importcontent disk`.
+      # Channel packs for importchannel/importcontent disk (import_channels.sh).
       - ${LSHE_CONTENT_DIR:-/srv/lshe-content}:/srv/lshe-content:ro
+      # kolibri_helper_scripts (roster import, grade bands, monthly report).
+      # Its lshe/*.sh scripts run on the host and call lshe/*.py in here.
+      - ${LSHE_HELPER_SCRIPTS_DIR:-/opt/lshe/kolibri_helper_scripts}:/opt/kolibri_helper_scripts:ro
     networks: [lshe]
 
 networks:

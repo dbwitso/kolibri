@@ -4,7 +4,8 @@ and each band allows a set of channels. Coaches can only assign content from
 the band's channels, and restricted learners only see content from the
 channels of their classes' bands.
 
-Set up with `kolibri manage setbandchannels` and `kolibri manage setclassband`.
+Set up with set_band_channels.py and set_class_band.py in kolibri_helper_scripts
+(lshe/), which write the models in models.py.
 Enforcement is on unless LSHE_GRADE_BANDS=off (see lshe_settings). The hook
 that applies these rules is GradeBandRestrictionHook in kolibri_plugin.py.
 """
@@ -16,8 +17,8 @@ def _teacher_channels():
     try:
         return set(teacher_channel_ids())
     except ValueError:
-        # A malformed setting must not open anything up; setbandchannels and
-        # lshereport report the bad value.
+        # A malformed setting must not open anything up; the helper scripts
+        # (set_band_channels.py, lshe_report.py) report the bad value.
         return set()
 
 
