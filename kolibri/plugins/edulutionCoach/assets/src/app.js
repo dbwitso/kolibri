@@ -28,6 +28,14 @@ class CoachToolsModule extends KolibriApp {
         redirectBrowser();
         return;
       }
+      // Learners (and signed-out users) get the class list page, which says
+      // the page is for coaches and admins. Any other page would ask the
+      // server for class data, be refused, and show a blank page.
+      const { isCoach, isAdmin, isSuperuser } = this.store.getters;
+      if (!(isCoach || isAdmin || isSuperuser) && to.name !== 'CoachClassListPage') {
+        next({ name: 'CoachClassListPage', replace: true });
+        return;
+      }
       this.store.dispatch('loading');
       const promises = [];
       // Clear the snackbar at every navigation to prevent it from re-appearing
