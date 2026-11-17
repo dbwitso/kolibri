@@ -16,6 +16,9 @@ function defaultState() {
   return {
     id: null,
     name: '',
+    // Channel ids this class's lessons may use (its grade band), or null
+    // when any channel may be used.
+    assignableChannelIds: null,
     /*
      * coachMap := {
      *   [id]: { id, name, username }
@@ -511,6 +514,7 @@ export default {
         id: summary.id,
         facility_id: summary.facility_id,
         name: summary.name,
+        assignableChannelIds: summary.assignable_channel_ids || null,
         coachMap: _itemMap(summary.coaches, 'id'),
         learnerMap: _itemMap(summary.learners, 'id'),
         groupMap: _itemMap(summary.groups, 'id'),

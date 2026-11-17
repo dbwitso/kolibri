@@ -19,6 +19,7 @@ from kolibri.core.auth.models import AdHocGroup
 from kolibri.core.auth.models import Collection
 from kolibri.core.auth.models import FacilityUser
 from kolibri.core.content.models import ContentNode
+from kolibri.core.content.utils.assignment_restrictions import assignable_channel_ids
 from kolibri.core.exams.models import Exam
 from kolibri.core.assessment.models import ExamAssessment
 from kolibri.core.lessons.models import LearnerResourceLock
@@ -764,6 +765,9 @@ class ClassSummaryViewSet(viewsets.ViewSet):
             "id": pk,
             "facility_id": classroom.parent.id,
             "name": classroom.name,
+            # Channels this class's lessons and quizzes may use (its grade
+            # band), or None when any channel may be used.
+            "assignable_channel_ids": assignable_channel_ids(classroom),
             "coaches": serialize_users(
                 FacilityUser.objects.filter(
                     roles__collection=classroom, roles__kind=role_kinds.COACH

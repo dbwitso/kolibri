@@ -471,6 +471,12 @@
         return this.saveLessonResources({
           lessonId: this.lessonId,
           resources: this.workingResources,
+        }).catch(error => {
+          // Tell the coach why the server refused (e.g. a resource from
+          // another grade band) instead of failing silently.
+          const data = (error && error.response && error.response.data) || [];
+          const reason = [].concat(data).map(e => (e && e.metadata && e.metadata.message) || '');
+          this.createSnackbar(reason.find(Boolean) || this.coachString('saveLessonError'));
         });
       },
       selectionMetadata(content) {

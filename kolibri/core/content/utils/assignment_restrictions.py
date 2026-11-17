@@ -169,3 +169,20 @@ def allowed_channel_ids_for_user(user):
         channel_ids = set(channel_ids)
         allowed = channel_ids if allowed is None else allowed & channel_ids
     return allowed
+
+
+def assignable_channel_ids(classroom):
+    """
+    None if no hook restricts `classroom`, otherwise the sorted list of
+    channel ids its lessons and quizzes may use (the intersection over all
+    hooks; empty when, for example, the class has no grade band yet). The
+    coach's resource picker offers only these channels.
+    """
+    allowed = None
+    for hook in _hooks():
+        restriction = hook.restriction_for_classroom(classroom)
+        if restriction is None:
+            continue
+        channel_ids = set(restriction.channel_ids if restriction.label else ())
+        allowed = channel_ids if allowed is None else allowed & channel_ids
+    return None if allowed is None else sorted(allowed)

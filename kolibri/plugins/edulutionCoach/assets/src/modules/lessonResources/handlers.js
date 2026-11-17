@@ -10,6 +10,13 @@ import { getContentNodeThumbnail } from 'kolibri.utils.contentNode';
 import chunk from 'lodash/chunk';
 import { LessonsPageNames } from '../../constants/lessonsConstants';
 
+// Only the channels this class may be given (its grade band). The server
+// refuses anything else, so offering it would only lead to a failed save.
+function assignable(store, channelIdOf) {
+  const allowed = store.state.classSummary.assignableChannelIds;
+  return item => !allowed || allowed.includes(channelIdOf(item));
+}
+
 function showResourceSelectionPage(store, params) {
   const { lessonId, contentList, pageName, bookmarksList, ancestors = [] } = params;
   const pendingSelections = store.state.lessonSummary.workingResources || [];
@@ -97,14 +104,16 @@ function showResourceSelectionPage(store, params) {
 
 export function showLessonResourceSelectionRootPage(store, params) {
   return store.dispatch('loading').then(() => {
-    const channelContentList = store.getters.getChannels.map(channel => {
-      return {
-        ...channel,
-        id: channel.root_id,
-        kind: ContentNodeKinds.CHANNEL,
-        is_leaf: false,
-      };
-    });
+    const channelContentList = store.getters.getChannels
+      .filter(assignable(store, channel => channel.id))
+      .map(channel => {
+        return {
+          ...channel,
+          id: channel.root_id,
+          kind: ContentNodeKinds.CHANNEL,
+          is_leaf: false,
+        };
+      });
 
     return showResourceSelectionPage(store, {
       classId: params.classId,
@@ -278,9 +287,11 @@ export function showLessonResourceSearchPage(store, params, query = {}) {
         }),
       },
     }).then(results => {
-      const contentList = results.results.map(node => {
-        return { ...node, thumbnail: getContentNodeThumbnail(node) };
-      });
+      const contentList = results.results
+        .filter(assignable(store, node => node.channel_id))
+        .map(node => {
+          return { ...node, thumbnail: getContentNodeThumbnail(node) };
+        });
       return showResourceSelectionPage(store, {
         classId: params.classId,
         lessonId: params.lessonId,

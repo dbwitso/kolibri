@@ -440,3 +440,41 @@ class RestrictedLearnerCacheTestCase(BandFixture, APITestCase):
         first = self.client.get(self.url)
         again = self.client.get(self.url, HTTP_IF_NONE_MATCH=first["ETag"])
         self.assertEqual(again.status_code, 304)
+
+
+@override_settings(LSHE_GRADE_BANDS="on")
+class CoachAssignableChannelsTestCase(BandFixture, APITestCase):
+    """
+    The coach's class summary says which channels the class may be given, so
+    the lesson resource picker offers only the class's band.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.build()
+
+    def setUp(self):
+        self.client.login(
+            username=self.coach.username, password=PASSWORD, facility=self.facility
+        )
+
+    def assignable(self, classroom):
+        response = self.client.get(
+            reverse(
+                "kolibri:kolibri.plugins.edulutionCoach:classsummary-detail",
+                kwargs={"pk": classroom.id},
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+        return response.data["assignable_channel_ids"]
+
+    def test_band_channels_only(self):
+        self.assertEqual(self.assignable(self.lower), [self.g45_channel])
+        self.assertEqual(self.assignable(self.upper), [self.g67_channel])
+
+    def test_no_band_no_channels(self):
+        self.assertEqual(self.assignable(self.unbanded), [])
+
+    def test_any_channel_when_bands_off(self):
+        with override_settings(LSHE_GRADE_BANDS="off"):
+            self.assertIsNone(self.assignable(self.lower))
