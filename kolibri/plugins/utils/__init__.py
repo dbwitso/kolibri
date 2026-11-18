@@ -431,6 +431,52 @@ def autoremove_unavailable_plugins():
         config.save()
 
 
+def _missing_frontend_build(module_path):
+    """
+    True for a plugin in this source tree that has a frontend (a
+    buildConfig.js) but no built bundles: its pages would fail with a server
+    error, because the webpack stats files they load do not exist.
+    """
+    try:
+        module = importlib.import_module(module_path)
+    except Exception:
+        return False
+    plugin_dir = os.path.dirname(getattr(module, "__file__", "") or "")
+    if not plugin_dir or not os.path.isfile(os.path.join(plugin_dir, "buildConfig.js")):
+        return False
+    build_dir = os.path.join(plugin_dir, "build")
+    return not (
+        os.path.isdir(build_dir)
+        and any(name.endswith("_stats.json") for name in os.listdir(build_dir))
+    )
+
+
+def disable_unbuilt_plugins():
+    """
+    Disable enabled plugins whose frontend was not built into this install.
+    This fork leaves some stock plugins (learn, coach) out of the frontend
+    build; if one is enabled anyway - by an older plugins.json, say - every
+    page that loads its navigation fails with a server error. Skipped in
+    developer mode, where the webpack dev server may write the bundles later.
+    """
+    from kolibri.plugins.registry import is_initialized
+
+    if is_initialized():
+        raise RuntimeError("Attempted to update plugins when registry is initialized")
+    if os.environ.get("KOLIBRI_DEVELOPER_MODE"):
+        return
+    for module_path in sorted(config.ACTIVE_PLUGINS):
+        if _missing_frontend_build(module_path):
+            config.remove_plugin(module_path)
+            logger.warning(
+                (
+                    "Plugin {mod} has no frontend build in this install, so it "
+                    "has been disabled. Build it, then run:\n"
+                    "   $ kolibri plugin enable {mod}"
+                ).format(mod=module_path)
+            )
+
+
 def enable_new_default_plugins():
     """
     Enable new plugins that have been added between versions

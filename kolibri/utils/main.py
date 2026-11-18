@@ -26,6 +26,7 @@ from kolibri.core.upgrade import run_upgrades
 from kolibri.core.utils.cache import process_cache
 from kolibri.deployment.default.sqlite_db_names import ADDITIONAL_SQLITE_DATABASES
 from kolibri.plugins.utils import autoremove_unavailable_plugins
+from kolibri.plugins.utils import disable_unbuilt_plugins
 from kolibri.plugins.utils import check_plugin_config_file_location
 from kolibri.plugins.utils import enable_new_default_plugins
 from kolibri.plugins.utils import run_plugin_updates
@@ -201,6 +202,10 @@ def _upgrades_before_django_setup(updated, version):
         # This needs to be run before dbbackup because
         # dbbackup relies on settings.INSTALLED_APPS
         enable_new_default_plugins()
+
+    # A plugin left out of the frontend build must not stay enabled: its
+    # pages would all fail with a server error.
+    disable_unbuilt_plugins()
 
     # Ensure that we have done all manipulations of our plugins registry before
     # we do the check for options.ini as that will invoke our plugin registry.
