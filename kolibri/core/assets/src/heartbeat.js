@@ -310,6 +310,9 @@ export class HeartBeat {
       'DOMMouseScroll',
       'mousewheel',
       'touchmove',
+      // A tap on a tablet: touchmove alone only catches swipes.
+      'touchstart',
+      'pointerdown',
       'MSPointerMove',
     ];
   }

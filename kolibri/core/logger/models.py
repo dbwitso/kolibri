@@ -213,6 +213,10 @@ class UserSessionLog(BaseLogModel):
                         browser_major=browser_info.get("major", ""),
                     )
                 )
+                if not (os_info or browser_info) and user_session_log:
+                    # Called without device details (from progress tracking):
+                    # the learner is most likely on the same device as before.
+                    device_info = user_session_log.device_info
                 user_session_log = cls(user=user, device_info=device_info)
             user_session_log.last_interaction_timestamp = local_now()
             user_session_log.save()

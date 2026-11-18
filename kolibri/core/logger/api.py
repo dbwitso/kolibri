@@ -35,6 +35,7 @@ from .models import ContentSessionLog
 from .models import ContentSummaryLog
 from .models import GenerateCSVLogRequest
 from .models import MasteryLog
+from .models import UserSessionLog
 from kolibri.core.api import ReadOnlyValuesViewset
 from kolibri.core.auth.api import KolibriAuthPermissions
 from kolibri.core.auth.api import KolibriAuthPermissionsFilter
@@ -1046,6 +1047,10 @@ class ProgressTrackingViewSet(viewsets.GenericViewSet):
                     context,
                 )
                 output.update(attempt_output)
+            # Progress on a resource is activity: a learner watching a video
+            # touches nothing for minutes, so the heartbeat alone reports them
+            # idle and the attendance report shows no time logged in.
+            UserSessionLog.update_log(request.user)
             return Response(output)
 
 
