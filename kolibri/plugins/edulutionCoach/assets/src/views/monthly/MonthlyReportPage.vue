@@ -142,11 +142,17 @@
 
       <!-- All the cards: a preview each, "View all" for the rest. Printing
            shows every card in full, but never the learner list. -->
-      <KGrid v-else gutter="16" class="cards" :class="{ dim: loading }">
-        <KGridItem
+      <!-- Cards flow in columns, each under the one before, so a short or
+           missing card leaves no gap. -->
+      <div
+        v-else-if="shownCards.length"
+        class="cards"
+        :class="{ dim: loading, printing }"
+      >
+        <div
           v-for="card in shownCards"
           :key="card.id"
-          :layout12="{ span: printing ? 12 : 6 }"
+          class="card-cell"
           :class="{ 'hide-in-print': card.id === 'learners' }"
         >
           <Block
@@ -167,8 +173,13 @@
             />
             <component :is="card.component" v-else :report="report" :full="printing" />
           </Block>
-        </KGridItem>
-      </KGrid>
+        </div>
+      </div>
+      <KPageContainer v-else class="card-page">
+        <p :style="{ color: $themeTokens.annotation }">
+          {{ $tr('nothingYet') }}
+        </p>
+      </KPageContainer>
 
       <KPageContainer class="definitions-container">
         <p class="definitions" :style="{ color: $themeTokens.annotation }">
@@ -265,8 +276,19 @@
           },
         ];
       },
+      // Cards with something to show; the rest are left out.
       shownCards() {
-        return this.cards.filter(card => card.id !== 'topics' || this.report.topics.length);
+        const report = this.report;
+        const busy = row =>
+          row.sessions || row.completions || row.video_watch_seconds || row.reached_cumulative;
+        const hasData = {
+          activity: report.series.some(busy),
+          gender: report.totals.ALL.enrolled_learners > 0,
+          trend: report.trend.some(busy),
+          topics: report.topics.length > 0,
+          learners: report.learners.length > 0,
+        };
+        return this.cards.filter(card => hasData[card.id]);
       },
       openCard() {
         return this.cards.find(card => card.id === this.$route.params.section) || null;
@@ -598,6 +620,10 @@
         context: "Under 'Resources completed'.",
       },
       allCards: { message: 'All figures', context: 'Back link from one card to all the cards.' },
+      nothingYet: {
+        message: 'Nothing to show for this period yet: no learners came.',
+        context: 'Shown on the Monthly reports page when no card has any figures.',
+      },
       activityCard: { message: 'Activity', context: 'Card title.' },
       activityDescription: {
         message: 'When learners came and what they did, through the period.',
@@ -744,6 +770,23 @@
 
   .card-page {
     margin-top: 16px;
+  }
+
+  // Two columns on a wide screen, one on a tablet or phone (each column at
+  // least 440px); every card stays whole within its column.
+  .cards {
+    column-gap: 16px;
+    columns: 2 440px;
+
+    &.printing {
+      columns: 1;
+    }
+  }
+
+  .card-cell {
+    display: inline-block;
+    width: 100%;
+    break-inside: avoid;
   }
 
   .card-note {
