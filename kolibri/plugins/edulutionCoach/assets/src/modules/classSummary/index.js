@@ -131,6 +131,18 @@ function defaultState() {
      * first. See class_summary_api.get_learner_overview.
      */
     learnerOverviewList: [],
+    // Ids of the learners who have finished at least one item (the LSHE
+    // "reached" measure). See class_summary_api.get_reached_learner_ids.
+    reachedLearnerIds: [],
+    /*
+     * bandTopics := [
+     *   { id, title, channel_id, in_active_lesson, resource_count,
+     *     completed, started, not_started }, ...
+     * ]
+     * The topics of the class's grade band, in channel order; empty when
+     * the class has no band. See class_summary_api.get_band_topic_progress.
+     */
+    bandTopics: [],
     // date range (ISO date strings, e.g. '2026-09-01') used to scope
     // watchTimeMap/sessionTimeMap; null means unbounded
     dateRangeStart: null,
@@ -531,6 +543,8 @@ export default {
         sessionTimeMap: summary.session_time_by_learner || {},
         learnerResourceLocksList: summary.learner_resource_locks || [],
         learnerOverviewList: summary.learner_overview || [],
+        reachedLearnerIds: summary.reached_learner_ids || [],
+        bandTopics: summary.band_topics || [],
         assessmentGroupMap,
       });
     },

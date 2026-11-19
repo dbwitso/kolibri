@@ -18,6 +18,7 @@ from kolibri.core.auth.constants import role_kinds
 from kolibri.core.auth.models import AdHocGroup
 from kolibri.core.auth.models import Collection
 from kolibri.core.auth.models import FacilityUser
+from kolibri.core.content.models import ChannelMetadata
 from kolibri.core.content.models import ContentNode
 from kolibri.core.content.utils.assignment_restrictions import assignable_channel_ids
 from kolibri.core.exams.models import Exam
@@ -593,6 +594,124 @@ def get_learner_resource_locks(classroom):
     )
 
 
+def get_reached_learner_ids(learner_ids):
+    """
+    The learners who have fully completed at least one item, anywhere: the
+    "reached" measure of the LSHE monthly report. One query.
+    """
+    return sorted(
+        logger_models.ContentSummaryLog.objects.filter(
+            user_id__in=learner_ids, progress__gte=1
+        )
+        .values_list("user_id", flat=True)
+        .distinct()
+    )
+
+
+def get_band_topic_progress(classroom, learner_ids, lesson_data):
+    """
+    The topics of the channels this class may use (its grade band), in
+    channel order, with how far the class's learners have got in each:
+
+        {
+            "id", "title", "channel_id",
+            "in_active_lesson": bool,  # a resource of it is in an active
+                                       # lesson of this class
+            "resource_count": int,
+            "completed": int,   # learners who finished every resource
+            "started": int,     # learners who have begun but not finished
+            "not_started": int,
+        }
+
+    Empty when the class has no band, or when no band rule applies (then any
+    channel may be used, and there is no topic list to follow).
+    """
+    channel_ids = assignable_channel_ids(classroom)
+    if not channel_ids:
+        return []
+    channel_order = {
+        channel_id: position
+        for position, channel_id in enumerate(
+            ChannelMetadata.objects.filter(id__in=channel_ids)
+            .order_by(F("order").asc(nulls_last=True), "name")
+            .values_list("id", flat=True)
+        )
+    }
+    topics = list(
+        ContentNode.objects.filter(
+            channel_id__in=channel_ids,
+            parent__parent__isnull=True,
+            parent__isnull=False,
+            kind=content_kinds.TOPIC,
+            available=True,
+        ).values("id", "title", "channel_id", "tree_id", "lft", "rght")
+    )
+    if not topics:
+        return []
+    topics.sort(key=lambda t: (channel_order.get(t["channel_id"], 0), t["lft"]))
+
+    # Every resource (non-topic) of the band's channels, by topic.
+    resources = ContentNode.objects.filter(
+        channel_id__in=channel_ids, available=True
+    ).exclude(kind=content_kinds.TOPIC)
+    topic_resources = {
+        t["id"]: {"node_ids": set(), "content_ids": set()} for t in topics
+    }
+    for node in resources.values("id", "content_id", "tree_id", "lft"):
+        for topic in topics:
+            if (
+                node["tree_id"] == topic["tree_id"]
+                and topic["lft"] < node["lft"] < topic["rght"]
+            ):
+                topic_resources[topic["id"]]["node_ids"].add(node["id"])
+                topic_resources[topic["id"]]["content_ids"].add(node["content_id"])
+                break
+
+    all_content_ids = set()
+    for resource in topic_resources.values():
+        all_content_ids |= resource["content_ids"]
+    completed_by_learner = {}
+    started_by_learner = {}
+    for user_id, content_id, progress in logger_models.ContentSummaryLog.objects.filter(
+        user_id__in=learner_ids, content_id__in=all_content_ids
+    ).values_list("user_id", "content_id", "progress"):
+        started_by_learner.setdefault(user_id, set()).add(content_id)
+        if progress >= 1:
+            completed_by_learner.setdefault(user_id, set()).add(content_id)
+
+    active_lesson_node_ids = set()
+    for lesson in lesson_data:
+        if lesson.get("is_active"):
+            active_lesson_node_ids |= set(lesson.get("node_ids") or [])
+
+    output = []
+    for topic in topics:
+        resource = topic_resources[topic["id"]]
+        content_ids = resource["content_ids"]
+        if not content_ids:
+            continue
+        completed = started = 0
+        for learner_id in learner_ids:
+            finished = completed_by_learner.get(learner_id, set()) & content_ids
+            if len(finished) == len(content_ids):
+                completed += 1
+            elif started_by_learner.get(learner_id, set()) & content_ids:
+                started += 1
+        output.append(
+            {
+                "id": topic["id"],
+                "title": topic["title"],
+                "channel_id": topic["channel_id"],
+                "in_active_lesson": bool(resource["node_ids"] & active_lesson_node_ids),
+                "resource_count": len(content_ids),
+                "completed": completed,
+                "started": started,
+                "not_started": len(learner_ids) - completed - started,
+            }
+        )
+    return output
+
+
 def _last_activity_sort_key(row):
     # Converting to a float epoch (rather than comparing datetimes directly)
     # sidesteps aware/naive datetime comparison errors, and lets a learner
@@ -788,6 +907,12 @@ class ClassSummaryViewSet(viewsets.ViewSet):
             "watch_time_by_learner": watch_time_by_learner,
             "session_time_by_learner": session_time_by_learner,
             "learner_resource_locks": learner_resource_locks,
+            "reached_learner_ids": get_reached_learner_ids(
+                [learner["id"] for learner in learners_data]
+            ),
+            "band_topics": get_band_topic_progress(
+                classroom, [learner["id"] for learner in learners_data], lesson_data
+            ),
             "learner_overview": get_learner_overview(
                 learners_data,
                 content_learner_status,
