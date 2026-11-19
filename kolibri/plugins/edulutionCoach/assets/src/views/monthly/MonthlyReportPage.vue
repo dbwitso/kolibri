@@ -56,7 +56,7 @@
             :primary="period === option.value"
             :text="option.label"
             :aria-pressed="String(period === option.value)"
-            @click="setPeriod(option.value)"
+            @click="go({ period: option.value })"
           />
         </div>
         <div class="period-step">
@@ -78,7 +78,7 @@
             v-if="!isCurrentPeriod"
             appearance="basic-link"
             :text="$tr('backToNow')"
-            @click="anchor = today"
+            @click="go({ date: undefined })"
           />
         </div>
       </div>
@@ -96,7 +96,7 @@
           <span v-for="note in notes" :key="note">{{ note }} </span>
         </p>
 
-        <!-- Headline figures -->
+        <!-- Headline figures: on every view -->
         <div class="tiles" :class="{ dim: loading }">
           <div
             v-for="tile in tiles"
@@ -119,210 +119,63 @@
             </div>
           </div>
         </div>
+      </template>
+    </KPageContainer>
 
-        <!-- Activity over the period -->
-        <section class="section">
-          <div class="section-heading">
-            <h2>{{ chartTitle }}</h2>
-            <KSelect
-              class="hide-in-print metric-select"
-              :label="$tr('showLabel')"
-              :options="metricOptions"
-              :value="metricOption"
-              @change="option => (metric = option.value)"
+    <template v-if="report">
+      <!-- One card, in full ("View all") -->
+      <KPageContainer v-if="openCard" class="card-page" :class="{ dim: loading }">
+        <BackLink :to="overviewRoute" :text="$tr('allCards')" class="hide-in-print" />
+        <h2>
+          <KLabeledIcon :icon="openCard.icon" :label="openCard.title" />
+        </h2>
+        <p class="card-note" :style="{ color: $themeTokens.annotation }">
+          {{ openCard.description }}
+        </p>
+        <TopicProgressList
+          v-if="openCard.id === 'topics'"
+          :topics="report.topics"
+          :learnerCount="report.learners.length"
+        />
+        <component :is="openCard.component" v-else :report="report" :full="true" />
+      </KPageContainer>
+
+      <!-- All the cards: a preview each, "View all" for the rest. Printing
+           shows every card in full, but never the learner list. -->
+      <KGrid v-else gutter="16" class="cards" :class="{ dim: loading }">
+        <KGridItem
+          v-for="card in shownCards"
+          :key="card.id"
+          :layout12="{ span: printing ? 12 : 6 }"
+          :class="{ 'hide-in-print': card.id === 'learners' }"
+        >
+          <Block
+            :allLinkText="coachString('viewAllAction')"
+            :allLinkRoute="cardRoute(card.id)"
+            :showAllLink="!printing"
+          >
+            <template #title>
+              <KLabeledIcon :icon="card.icon" :label="card.title" />
+            </template>
+            <p class="card-note" :style="{ color: $themeTokens.annotation }">
+              {{ card.description }}
+            </p>
+            <TopicProgressList
+              v-if="card.id === 'topics'"
+              :topics="printing ? report.topics : report.topics.slice(0, 3)"
+              :learnerCount="report.learners.length"
             />
-          </div>
-          <BarChart
-            :bars="chartBars"
-            :ariaLabel="chartTitle"
-            :showValues="report.series.length <= 31"
-            :height="170"
-            :maxBarWidth="shownPeriod === 'week' ? 56 : 28"
-          />
-        </section>
+            <component :is="card.component" v-else :report="report" :full="printing" />
+          </Block>
+        </KGridItem>
+      </KGrid>
 
-        <!-- Girls and boys -->
-        <section class="section">
-          <h2>{{ $tr('byGenderTitle') }}</h2>
-          <p class="section-note" :style="{ color: $themeTokens.annotation }">
-            {{ $tr('byGenderDescription') }}
-          </p>
-          <div class="scroll">
-            <CoreTable>
-              <template #headers>
-                <th>{{ $tr('groupColumn') }}</th>
-                <th class="num">
-                  {{ $tr('enrolledColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('activeColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('reachedColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('newlyReachedColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('completedColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('sessionsColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('watchingColumn') }}
-                </th>
-              </template>
-              <template #tbody>
-                <tbody>
-                  <tr
-                    v-for="row in genderRows"
-                    :key="row.key"
-                    :class="{ total: row.key === 'ALL' }"
-                  >
-                    <td>{{ row.label }}</td>
-                    <td class="num">
-                      {{ $formatNumber(row.enrolled_learners) }}
-                    </td>
-                    <td class="num">
-                      {{ $formatNumber(row.active_learners) }}
-                    </td>
-                    <td class="num">
-                      {{ $formatNumber(row.reached_cumulative) }}
-                      <span class="pct" :style="{ color: $themeTokens.annotation }">
-                        {{ percent(row.reached_cumulative, row.enrolled_learners) }}
-                      </span>
-                    </td>
-                    <td class="num">
-                      {{ $formatNumber(row.reached_new) }}
-                    </td>
-                    <td class="num">
-                      {{ $formatNumber(row.completions) }}
-                    </td>
-                    <td class="num">
-                      {{ $formatNumber(row.sessions) }}
-                    </td>
-                    <td class="num">
-                      <TimeDuration :seconds="row.video_watch_seconds" />
-                    </td>
-                  </tr>
-                </tbody>
-              </template>
-            </CoreTable>
-          </div>
-        </section>
-
-        <!-- The last six months -->
-        <section class="section">
-          <h2>{{ $tr('trendTitle') }}</h2>
-          <KGrid gutter="24">
-            <KGridItem :layout12="{ span: 6 }" :layout8="{ span: 4 }">
-              <h3 class="chart-title">
-                {{ $tr('trendReached') }}
-              </h3>
-              <BarChart
-                :bars="trendBars('reached_cumulative')"
-                :max="Math.max(report.totals.ALL.enrolled_learners, 1)"
-                :ariaLabel="$tr('trendReached')"
-                :maxBarWidth="48"
-              />
-            </KGridItem>
-            <KGridItem :layout12="{ span: 6 }" :layout8="{ span: 4 }">
-              <h3 class="chart-title">
-                {{ $tr('trendActive') }}
-              </h3>
-              <BarChart
-                :bars="trendBars('active_learners')"
-                :max="Math.max(report.totals.ALL.enrolled_learners, 1)"
-                :ariaLabel="$tr('trendActive')"
-                :color="$themeTokens.primaryDark"
-                :maxBarWidth="48"
-              />
-            </KGridItem>
-          </KGrid>
-        </section>
-
-        <!-- Topics of the band, to date -->
-        <section v-if="report.topics.length" class="section">
-          <h2>{{ $tr('topicsTitle') }}</h2>
-          <p class="section-note" :style="{ color: $themeTokens.annotation }">
-            {{ $tr('topicsDescription') }}
-          </p>
-          <TopicProgressList :topics="report.topics" :learnerCount="report.learners.length" />
-        </section>
-
-        <!-- Each learner: names, so for the coach only, never printed -->
-        <section class="hide-in-print section">
-          <h2>{{ $tr('learnersTitle') }}</h2>
-          <p class="section-note" :style="{ color: $themeTokens.annotation }">
-            {{ $tr('learnersDescription') }}
-          </p>
-          <div class="scroll">
-            <CoreTable :emptyMessage="coachString('learnerListEmptyState')">
-              <template #headers>
-                <th>{{ coachString('nameLabel') }}</th>
-                <th class="num">
-                  {{ $tr('sessionsColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('loggedInColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('watchingColumn') }}
-                </th>
-                <th class="num">
-                  {{ $tr('completedColumn') }}
-                </th>
-                <th>{{ $tr('reachedColumn') }}</th>
-                <th>{{ coachString('lastActivityLabel') }}</th>
-              </template>
-              <template #tbody>
-                <tbody>
-                  <tr v-for="row in report.learners" :key="row.id">
-                    <td>
-                      <KRouterLink
-                        :text="row.name"
-                        :to="classRoute('ReportsLearnerReportPage', { learnerId: row.id })"
-                        icon="person"
-                      />
-                    </td>
-                    <td class="num">
-                      {{ $formatNumber(row.sessions) }}
-                    </td>
-                    <td class="num">
-                      <TimeDuration :seconds="row.logged_in_seconds" />
-                    </td>
-                    <td class="num">
-                      <TimeDuration :seconds="row.video_watch_seconds" />
-                    </td>
-                    <td class="num">
-                      {{ $formatNumber(row.completions) }}
-                    </td>
-                    <td>
-                      <KLabeledIcon
-                        v-if="row.reached"
-                        :icon="row.reached_new ? 'star' : 'correct'"
-                        :color="row.reached_new ? $themeTokens.mastered : $themeTokens.correct"
-                        :label="row.reached_new ? $tr('newlyReached') : $tr('reached')"
-                      />
-                      <KEmptyPlaceholder v-else />
-                    </td>
-                    <td>
-                      <ElapsedTime v-if="row.last_active" :date="new Date(row.last_active)" />
-                      <KEmptyPlaceholder v-else />
-                    </td>
-                  </tr>
-                </tbody>
-              </template>
-            </CoreTable>
-          </div>
-        </section>
-
+      <KPageContainer class="definitions-container">
         <p class="definitions" :style="{ color: $themeTokens.annotation }">
           {{ $tr('definitions') }}
         </p>
-      </template>
-    </KPageContainer>
+      </KPageContainer>
+    </template>
   </CoachAppBarPage>
 
 </template>
@@ -330,51 +183,97 @@
 
 <script>
 
-  import ElapsedTime from 'kolibri.coreVue.components.ElapsedTime';
   import TimeDuration from 'kolibri.coreVue.components.TimeDuration';
   import CoachAppBarPage from '../CoachAppBarPage';
   import commonCoach from '../common';
-  import BarChart from '../common/BarChart';
   import TopicProgressList from '../common/TopicProgressList';
+  import Block from '../home/HomePage/Block';
   import CSVExporter from '../../csv/exporter';
   import ClassReportResource from '../../apiResources/classReport';
+  import ActivityCard from './cards/ActivityCard';
+  import GenderCard from './cards/GenderCard';
+  import LearnersCard from './cards/LearnersCard';
+  import TrendCard from './cards/TrendCard';
+  import { isoDate, noon, percent, monthlyString, GENDER_KEYS } from './monthlyStrings';
 
-  // A date as YYYY-MM-DD, in the browser's time zone.
-  function isoDate(date) {
-    const pad = n => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-  }
-
-  // Midday of a YYYY-MM-DD date, so formatting never shifts the day.
-  function noon(iso) {
-    return new Date(String(iso).slice(0, 10) + 'T12:00:00');
-  }
-
-  const METRICS = ['active_learners', 'sessions', 'completions', 'video_watch_seconds'];
+  const PERIODS = ['day', 'week', 'month'];
 
   export default {
     name: 'MonthlyReportPage',
     components: {
-      BarChart,
+      Block,
       CoachAppBarPage,
-      ElapsedTime,
       TimeDuration,
       TopicProgressList,
     },
     mixins: [commonCoach],
     data() {
-      const today = isoDate(new Date());
       return {
-        period: 'month',
-        anchor: today,
-        today,
-        metric: 'active_learners',
+        today: isoDate(new Date()),
         report: null,
         loading: false,
         error: false,
+        printing: false,
       };
     },
     computed: {
+      // The period and date are in the address, so "View all", Back and a
+      // shared link keep them.
+      period() {
+        const period = this.$route.query.period;
+        return PERIODS.includes(period) ? period : 'month';
+      },
+      anchor() {
+        const date = this.$route.query.date;
+        return /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : this.today;
+      },
+      cards() {
+        return [
+          {
+            id: 'activity',
+            icon: 'inProgress',
+            title: this.$tr('activityCard'),
+            description: this.$tr('activityDescription'),
+            component: ActivityCard,
+          },
+          {
+            id: 'gender',
+            icon: 'people',
+            title: this.$tr('genderCard'),
+            description: this.$tr('genderDescription'),
+            component: GenderCard,
+          },
+          {
+            id: 'trend',
+            icon: 'reports',
+            title: this.$tr('trendCard'),
+            description: this.$tr('trendDescription'),
+            component: TrendCard,
+          },
+          {
+            id: 'topics',
+            icon: 'topic',
+            title: this.$tr('topicsCard'),
+            description: this.$tr('topicsDescription'),
+          },
+          {
+            id: 'learners',
+            icon: 'person',
+            title: this.$tr('learnersCard'),
+            description: this.$tr('learnersDescription'),
+            component: LearnersCard,
+          },
+        ];
+      },
+      shownCards() {
+        return this.cards.filter(card => card.id !== 'topics' || this.report.topics.length);
+      },
+      openCard() {
+        return this.cards.find(card => card.id === this.$route.params.section) || null;
+      },
+      overviewRoute() {
+        return this.cardRoute(undefined);
+      },
       periodOptions() {
         return [
           { value: 'day', label: this.$tr('day') },
@@ -387,10 +286,10 @@
           return '';
         }
         const start = noon(this.report.start);
-        if (this.shownPeriod === 'month') {
+        if (this.report.period === 'month') {
           return this.$formatDate(start, { month: 'long', year: 'numeric' });
         }
-        if (this.shownPeriod === 'week') {
+        if (this.report.period === 'week') {
           const last = new Date(start);
           last.setDate(last.getDate() + 6);
           return this.$tr('weekOf', {
@@ -405,10 +304,6 @@
           year: 'numeric',
         });
       },
-      // The period of the report on screen.
-      shownPeriod() {
-        return this.report ? this.report.period : this.period;
-      },
       isCurrentPeriod() {
         return !this.report || !this.report.complete;
       },
@@ -422,11 +317,8 @@
         }
         return notes;
       },
-      all() {
-        return this.report.totals.ALL;
-      },
       tiles() {
-        const all = this.all;
+        const all = this.report.totals.ALL;
         const active = all.active_learners;
         return [
           {
@@ -435,7 +327,7 @@
             label: this.$tr('reachedTile'),
             value: all.reached_cumulative,
             sub: this.$tr('reachedSub', {
-              percent: this.percent(all.reached_cumulative, all.enrolled_learners) || '0%',
+              percent: percent(all.reached_cumulative, all.enrolled_learners) || '0%',
               enrolled: all.enrolled_learners,
               newly: all.reached_new,
             }),
@@ -446,7 +338,7 @@
             label: this.$tr('activeTile'),
             value: active,
             sub: this.$tr('ofEnrolled', {
-              percent: this.percent(active, all.enrolled_learners) || '0%',
+              percent: percent(active, all.enrolled_learners) || '0%',
             }),
           },
           {
@@ -484,44 +376,6 @@
             sub: this.$tr('completedSub'),
           },
         ];
-      },
-      metricOptions() {
-        return METRICS.map(value => ({ value, label: this.$tr(value) }));
-      },
-      metricOption() {
-        return this.metricOptions.find(option => option.value === this.metric);
-      },
-      chartTitle() {
-        const by = { day: 'byHour', week: 'byDay', month: 'byDay' }[this.shownPeriod];
-        return this.$tr(by, { metric: this.metricOption.label });
-      },
-      chartBars() {
-        const isMinutes = this.metric === 'video_watch_seconds';
-        return this.report.series.map(row => {
-          const value = isMinutes ? Math.round(row[this.metric] / 60) : row[this.metric];
-          let label;
-          if (this.shownPeriod === 'day') {
-            label = String(row.key).padStart(2, '0');
-          } else if (this.shownPeriod === 'week') {
-            label = this.$formatDate(noon(row.key), { weekday: 'short' });
-          } else {
-            label = String(noon(row.key).getDate());
-          }
-          return { key: String(row.key), label, value, title: `${label}: ${value}` };
-        });
-      },
-      genderRows() {
-        const labels = {
-          FEMALE: this.$tr('girls'),
-          MALE: this.$tr('boys'),
-          NOT_SPECIFIED: this.$tr('notSpecified'),
-          ALL: this.$tr('allLearners'),
-        };
-        return ['FEMALE', 'MALE', 'NOT_SPECIFIED', 'ALL'].map(key => ({
-          key,
-          label: labels[key],
-          ...this.report.totals[key],
-        }));
       },
     },
     watch: {
@@ -563,8 +417,19 @@
             }
           });
       },
-      setPeriod(period) {
-        this.period = period;
+      // The address for a card (or, with no id, all the cards), keeping the
+      // period and date.
+      cardRoute(section) {
+        return {
+          name: 'MonthlyReportPage',
+          params: { classId: this.classId, section },
+          query: this.$route.query,
+        };
+      },
+      go(changes) {
+        const query = { ...this.$route.query, ...changes };
+        Object.keys(query).forEach(key => query[key] === undefined && delete query[key]);
+        this.$router.replace({ ...this.cardRoute(this.$route.params.section), query });
       },
       step(direction) {
         const date = noon(this.anchor);
@@ -576,16 +441,7 @@
           date.setDate(1);
           date.setMonth(date.getMonth() + direction);
         }
-        this.anchor = isoDate(date);
-      },
-      percent(part, whole) {
-        return whole ? Math.round((100 * part) / whole) + '%' : '';
-      },
-      trendBars(field) {
-        return this.report.trend.map(month => {
-          const label = this.$formatDate(noon(month.month + '-01'), { month: 'short' });
-          return { key: month.month, label, value: month[field], title: `${label}: ${month[field]}` };
-        });
+        this.go({ date: isoDate(date) });
       },
       fileLabel() {
         return `${this.className} ${this.periodLabel}`;
@@ -611,10 +467,10 @@
           { name: 'gender', key: 'gender' },
           ...fields.map(key => ({ name: key, key })),
         ];
-        const rows = ['FEMALE', 'MALE', 'NOT_SPECIFIED', 'ALL'].map(gender => ({
+        const rows = GENDER_KEYS.map(gender => ({
           centre_code: this.report.centre_code,
           class: this.className,
-          period: this.period,
+          period: this.report.period,
           start: this.report.start.slice(0, 10),
           end: this.report.end.slice(0, 10),
           gender,
@@ -625,7 +481,7 @@
       downloadLearners() {
         const columns = [
           { name: this.coachString('nameLabel'), key: 'name' },
-          { name: this.$tr('sessionsColumn'), key: 'sessions' },
+          { name: monthlyString('sessionsColumn'), key: 'sessions' },
           {
             name: this.$tr('loggedInMinutesColumn'),
             key: 'logged_in_seconds',
@@ -636,8 +492,12 @@
             key: 'video_watch_seconds',
             format: row => Math.round(row.video_watch_seconds / 60),
           },
-          { name: this.$tr('completedColumn'), key: 'completions' },
-          { name: this.$tr('reachedColumn'), key: 'reached', format: row => (row.reached ? 1 : 0) },
+          { name: monthlyString('completedColumn'), key: 'completions' },
+          {
+            name: monthlyString('reachedColumn'),
+            key: 'reached',
+            format: row => (row.reached ? 1 : 0),
+          },
           {
             name: this.coachString('lastActivityLabel'),
             key: 'last_active',
@@ -648,8 +508,17 @@
           this.report.learners
         );
       },
+      // Every card in full (the learner list stays out), then print.
       print() {
-        window.print();
+        if (this.openCard) {
+          window.print();
+          return;
+        }
+        this.printing = true;
+        this.$nextTick(() => {
+          window.print();
+          this.printing = false;
+        });
       },
     },
     $trs: {
@@ -728,62 +597,39 @@
         message: 'videos and activities finished',
         context: "Under 'Resources completed'.",
       },
-      showLabel: { message: 'Show', context: 'Label of the chart’s figure selector.' },
-      active_learners: { message: 'Active learners', context: 'Chart figure option.' },
-      sessions: { message: 'Sessions', context: 'Chart figure option.' },
-      completions: { message: 'Resources completed', context: 'Chart figure option.' },
-      video_watch_seconds: { message: 'Minutes watching', context: 'Chart figure option.' },
-      byDay: { message: '{metric} by day', context: 'Chart title, e.g. "Active learners by day".' },
-      byHour: {
-        message: '{metric} by hour',
-        context: 'Chart title for a single day, e.g. "Sessions by hour".',
+      allCards: { message: 'All figures', context: 'Back link from one card to all the cards.' },
+      activityCard: { message: 'Activity', context: 'Card title.' },
+      activityDescription: {
+        message: 'When learners came and what they did, through the period.',
+        context: "Under the 'Activity' card title.",
       },
-      byGenderTitle: { message: 'Girls and boys', context: 'Section title.' },
-      byGenderDescription: {
+      genderCard: { message: 'Girls and boys', context: 'Card title.' },
+      genderDescription: {
         message: 'The same figures as the monthly report sent to UNESCO.',
-        context: "Under the 'Girls and boys' section title.",
+        context: "Under the 'Girls and boys' card title.",
       },
-      groupColumn: { message: 'Learners', context: 'Table column: girls, boys, all.' },
-      enrolledColumn: { message: 'Enrolled', context: 'Table column.' },
-      activeColumn: { message: 'Active', context: 'Table column.' },
-      reachedColumn: { message: 'Reached', context: 'Table column (UNESCO measure).' },
-      newlyReachedColumn: { message: 'Newly reached', context: 'Table column.' },
-      completedColumn: { message: 'Completed', context: 'Table column: resources finished.' },
-      sessionsColumn: { message: 'Sessions', context: 'Table column.' },
-      watchingColumn: { message: 'Watching', context: 'Table column: video time.' },
-      loggedInColumn: { message: 'Logged in', context: 'Table column: time signed in.' },
-      loggedInMinutesColumn: { message: 'Logged in (minutes)', context: 'CSV column.' },
-      watchingMinutesColumn: { message: 'Watching (minutes)', context: 'CSV column.' },
-      girls: { message: 'Girls', context: 'Table row.' },
-      boys: { message: 'Boys', context: 'Table row.' },
-      notSpecified: { message: 'Not specified', context: 'Table row: gender not recorded.' },
-      allLearners: { message: 'All learners', context: 'Table row: total.' },
-      trendTitle: { message: 'The last six months', context: 'Section title.' },
-      trendReached: {
-        message: 'Learners reached, by the end of each month',
-        context: 'Chart title.',
+      trendCard: { message: 'The last six months', context: 'Card title.' },
+      trendDescription: {
+        message: 'How reach and attendance have changed, month by month.',
+        context: "Under the 'The last six months' card title.",
       },
-      trendActive: { message: 'Active learners each month', context: 'Chart title.' },
-      topicsTitle: { message: 'Topic progress', context: 'Section title.' },
+      topicsCard: { message: 'Topic progress', context: 'Card title.' },
       topicsDescription: {
         message: "The band's topics in order, to date. A learner has completed a topic when they have finished all its resources.",
-        context: "Under the 'Topic progress' section title.",
+        context: "Under the 'Topic progress' card title.",
       },
-      learnersTitle: { message: 'Each learner', context: 'Section title.' },
+      learnersCard: { message: 'Each learner', context: 'Card title.' },
       learnersDescription: {
-        message: 'For this period. Learners marked with a star were reached for the first time.',
-        context: "Under the 'Each learner' section title.",
-      },
-      reached: { message: 'Reached', context: 'A learner has finished at least one resource.' },
-      newlyReached: {
-        message: 'Newly reached',
-        context: 'A learner finished their first resource in this period.',
+        message: 'Learners to follow up first: not yet reached, or did not come. View all for everyone.',
+        context: "Under the 'Each learner' card title. Names are shown to the coach only.",
       },
       definitions: {
         message:
           'Reached: finished at least one resource. Active: signed in at least once in the period. Teacher channels are not counted. Days run midnight to midnight, Lusaka time.',
         context: 'Definitions at the foot of the Monthly reports page.',
       },
+      loggedInMinutesColumn: { message: 'Logged in (minutes)', context: 'CSV column.' },
+      watchingMinutesColumn: { message: 'Watching (minutes)', context: 'CSV column.' },
       summaryFile: { message: 'LSHE summary {label}', context: 'Downloaded file name.' },
       learnersFile: { message: 'LSHE learners {label}', context: 'Downloaded file name.' },
     },
@@ -860,14 +706,14 @@
 
   .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 12px;
     margin-top: 16px;
-    transition: opacity 0.2s;
+  }
 
-    &.dim {
-      opacity: 0.5;
-    }
+  .dim {
+    opacity: 0.5;
+    transition: opacity 0.2s;
   }
 
   .tile {
@@ -896,52 +742,21 @@
     font-size: 13px;
   }
 
-  .section {
-    margin-top: 32px;
-    break-inside: avoid;
+  .card-page {
+    margin-top: 16px;
   }
 
-  .section-heading {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: flex-end;
-    justify-content: space-between;
-  }
-
-  .metric-select {
-    width: 220px;
-    margin: 0;
-  }
-
-  .section-note {
-    margin-top: -8px;
+  .card-note {
+    margin-top: 0;
     font-size: 14px;
   }
 
-  .chart-title {
-    font-size: 15px;
-  }
-
-  .scroll {
-    overflow-x: auto;
-  }
-
-  .num {
-    text-align: right;
-  }
-
-  .pct {
-    margin-left: 4px;
-    font-size: 12px;
-  }
-
-  .total td {
-    font-weight: bold;
+  .definitions-container {
+    margin-top: 16px;
   }
 
   .definitions {
-    margin-top: 32px;
+    margin: 0;
     font-size: 13px;
   }
 

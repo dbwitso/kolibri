@@ -81,7 +81,7 @@ export default [
   {
     // LSHE figures by day, week and month, to share with partners (UNESCO).
     name: 'MonthlyReportPage',
-    path: '/:classId/monthly',
+    path: '/:classId/monthly/:section?',
     component: () => import(/* webpackChunkName: "MonthlyReportPage" */ '../views/monthly/MonthlyReportPage'),
     handler() {
       store.dispatch('notLoading');
