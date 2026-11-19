@@ -45,12 +45,25 @@
             icon: 'edit',
             color: this.$themeTokens.textInverted,
           },
+          {
+            title: this.$tr('monthlyReportsLabel'),
+            link: this.navRoute('MonthlyReportPage'),
+            icon: 'schedule',
+            color: this.$themeTokens.textInverted,
+          },
         ];
       },
     },
     methods: {
       navRoute(name) {
         return this.classId ? { name, params: { classId: this.classId } } : { name };
+      },
+    },
+    $trs: {
+      monthlyReportsLabel: {
+        message: 'Monthly reports',
+        context:
+          "Tab in the coach's class pages: the class's LSHE figures by day, week and month, to share with partners.",
       },
     },
   };

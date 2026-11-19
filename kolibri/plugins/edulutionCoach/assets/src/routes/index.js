@@ -79,6 +79,18 @@ export default [
     },
   },
   {
+    // LSHE figures by day, week and month, to share with partners (UNESCO).
+    name: 'MonthlyReportPage',
+    path: '/:classId/monthly',
+    component: () => import(/* webpackChunkName: "MonthlyReportPage" */ '../views/monthly/MonthlyReportPage'),
+    handler() {
+      store.dispatch('notLoading');
+    },
+    meta: {
+      titleParts: ['CLASS_NAME'],
+    },
+  },
+  {
     name: ClassesPageNames.CLASS_LEARNERS_LIST_VIEWER,
     path: '/:classId/learners',
     component: () => import(/* webpackChunkName: "ClassLearnersListPage" */ '../views/ClassLearnersListPage'),

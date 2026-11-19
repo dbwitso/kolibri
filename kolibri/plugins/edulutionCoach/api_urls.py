@@ -7,12 +7,14 @@ from .api import ExerciseDifficultQuestionsViewset
 from .api import LessonReportViewset
 from .api import PracticeQuizDifficultQuestionsViewset
 from .api import QuizDifficultQuestionsViewset
+from .class_report_api import ClassReportViewSet
 from .class_summary_api import ClassSummaryViewSet
 
 router = routers.DefaultRouter()
 
 router.register(r"lessonreport", LessonReportViewset, basename="lessonreport")
 router.register(r"classsummary", ClassSummaryViewSet, basename="classsummary")
+router.register(r"classreport", ClassReportViewSet, basename="classreport")
 router.register(
     r"notifications", ClassroomNotificationsViewset, basename="notifications"
 )

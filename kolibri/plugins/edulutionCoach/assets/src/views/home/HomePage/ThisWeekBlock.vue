@@ -14,30 +14,11 @@
     <p :style="{ color: $themeTokens.annotation }">
       {{ $tr('description') }}
     </p>
-    <div
-      class="chart"
-      role="img"
-      :aria-label="chartLabel"
-      :style="{ borderBottomColor: $themeTokens.fineLine }"
-    >
-      <div v-for="day in days" :key="day.date" class="column">
-        <span class="count">{{ day.learners === null ? '' : $formatNumber(day.learners) }}</span>
-        <div
-          class="bar"
-          :style="{
-            height: day.height,
-            backgroundColor: day.learners === null ? $themeTokens.fineLine : $themeTokens.primary,
-          }"
-        ></div>
-      </div>
-    </div>
-    <div class="labels" aria-hidden="true">
-      <span
-        v-for="day in days"
-        :key="day.date"
-        :style="{ color: $themeTokens.annotation }"
-      >{{ day.label }}</span>
-    </div>
+    <BarChart
+      :bars="bars"
+      :max="Math.max(learners.length, 1)"
+      :ariaLabel="chartLabel"
+    />
     <p v-if="!week.active_learners" class="stats" :style="{ color: $themeTokens.annotation }">
       {{ $tr('nobodyYet') }}
     </p>
@@ -68,13 +49,13 @@
 
   import TimeDuration from 'kolibri.coreVue.components.TimeDuration';
   import commonCoach from '../../common';
+  import BarChart from '../../common/BarChart';
   import Block from './Block';
-
-  const BAR_MAX_PX = 100;
 
   export default {
     name: 'ThisWeekBlock',
     components: {
+      BarChart,
       Block,
       TimeDuration,
     },
@@ -90,17 +71,15 @@
         );
       },
       days() {
-        const total = Math.max(this.learners.length, 1);
         return this.week.days.map(day => ({
           date: day.date,
           learners: day.learners,
           // Midday, so the weekday is right in any time zone.
           label: this.$formatDate(new Date(day.date + 'T12:00:00'), { weekday: 'short' }),
-          height:
-            day.learners === null
-              ? '2px'
-              : Math.max(Math.round((day.learners / total) * BAR_MAX_PX), 2) + 'px',
         }));
+      },
+      bars() {
+        return this.days.map(day => ({ key: day.date, label: day.label, value: day.learners }));
       },
       chartLabel() {
         const counts = this.days
@@ -143,48 +122,6 @@
 
 
 <style lang="scss" scoped>
-
-  .chart {
-    display: flex;
-    gap: 8px;
-    align-items: flex-end;
-    height: 130px;
-    padding: 0 4px;
-    border-bottom-style: solid;
-    border-bottom-width: 1px;
-  }
-
-  .column {
-    display: flex;
-    flex: 1 1 0;
-    flex-direction: column;
-    gap: 4px;
-    align-items: center;
-    justify-content: flex-end;
-    height: 100%;
-  }
-
-  .count {
-    font-size: 12px;
-  }
-
-  .bar {
-    width: 100%;
-    max-width: 40px;
-    border-radius: 4px 4px 0 0;
-  }
-
-  .labels {
-    display: flex;
-    gap: 8px;
-    padding: 6px 4px 0;
-    font-size: 12px;
-
-    span {
-      flex: 1 1 0;
-      text-align: center;
-    }
-  }
 
   .stats {
     margin-top: 16px;

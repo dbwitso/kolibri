@@ -37,6 +37,32 @@ A video counts as completed when Kolibri records it as fully watched
 Watch time is taken from the per-session logs, not the per-item totals, so
 each month gets only its own viewing.
 
+## On screen: the coach's Monthly reports page
+
+Coaches open **Monthly reports** from the tabs of a class (next to Class
+home, Reports and Plan). It shows the same figures as the monthly file, for a
+**day, week or month**, worked out by the same code
+(`kolibri/plugins/edulution/lshe_metrics.py`, which `lshe_report.py` also
+uses), so the screen and the file always agree:
+
+- headline figures: learners reached (and newly reached), active learners,
+  sessions, time watching, time logged in, resources completed;
+- a chart by day (by hour for a single day) of active learners, sessions,
+  resources completed or minutes watching;
+- the figures for girls, boys and learners whose gender is not recorded;
+- the last six months: learners reached and active learners per month;
+- the band's topic progress, to date;
+- a row per learner, **for the coach only**.
+
+For a finished month that has already been reported, the page counts the
+learners from the class list that report saved, as the file does.
+
+**Sharing.** *Download summary* (a CSV with one row per gender) and *Print
+summary* hold counts only, so they can go to partners such as UNESCO. The
+learner list, with names, is left out of both; *Download learner list* is for
+the coach. Only the class's coaches and the facility's admins can open the
+page.
+
 ## Month boundaries and re-runs
 
 - Months run from midnight on the 1st to midnight on the 1st of the next
