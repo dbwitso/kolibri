@@ -41,6 +41,7 @@ import Navbar from '../views/Navbar';
 import NavbarLink from '../views/Navbar/NavbarLink';
 import HorizontalNavBarWithOverflowMenu from '../views/HorizontalNavBarWithOverflowMenu';
 import CoreLogo from '../views/CoreLogo';
+import PartnerFooter from '../views/PartnerFooter';
 import LanguageSwitcherList from '../views/language-switcher/LanguageSwitcherList';
 import LanguageSwitcherModal from '../views/language-switcher/LanguageSwitcherModal';
 import ElapsedTime from '../views/ElapsedTime';
@@ -188,6 +189,7 @@ export default {
       MultiPaneLayout,
       CoreFullscreen,
       CoreLogo,
+      PartnerFooter,
       UiAlert,
       UiIconButton,
       UiToolbar,

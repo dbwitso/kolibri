@@ -188,6 +188,19 @@ export default {
       },
     },
   },
+  // Logos in the footer of every page (AppBarPage) and of the sign-in page,
+  // such as a programme's partners.
+  footer: {
+    type: Object,
+    default: null,
+    spec: {
+      logos: {
+        type: Array,
+        default: () => [],
+        spec: _imageSpec,
+      },
+    },
+  },
   logos: {
     type: Array,
     default: () => [],

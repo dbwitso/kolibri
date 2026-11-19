@@ -81,6 +81,8 @@
       </div>
       <div class="table-row">
         <div class="footer-cell table-cell" :style="{ backgroundColor: $themeTokens.surface }">
+          <!-- The theme's footer logos (partners and Edulution's full logo) -->
+          <PartnerFooter class="sign-in-partners" />
           <div class="small-text">
             <span class="version-string">
               {{ versionMsg }}
@@ -141,6 +143,7 @@
 
   import { mapGetters } from 'vuex';
   import CoreLogo from 'kolibri.coreVue.components.CoreLogo';
+  import PartnerFooter from 'kolibri.coreVue.components.PartnerFooter';
   import PrivacyInfoModal from 'kolibri.coreVue.components.PrivacyInfoModal';
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
   import useUser from 'kolibri.coreVue.composables.useUser';
@@ -153,7 +156,7 @@
 
   export default {
     name: 'AuthBase',
-    components: { CoreLogo, PrivacyInfoModal },
+    components: { CoreLogo, PartnerFooter, PrivacyInfoModal },
     mixins: [commonCoreStrings, commonUserStrings],
     setup() {
       const { isLearnerOnlyImport } = useUser();
@@ -339,6 +342,14 @@
     @extend %dropshadow-8dp;
 
     padding: 16px;
+  }
+
+  // The logos sit above the version line, without the page footer's rule.
+  .sign-in-partners {
+    padding: 0 0 8px;
+    margin-top: 0;
+    border: 0;
+    border-radius: 0;
   }
 
   .footer-cell .small-text {
