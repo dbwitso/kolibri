@@ -14,19 +14,21 @@
       />
     </KRadioButton>
 
-    <!-- Learner groups -->
-    <KCheckbox
-      v-for="group in groups"
-      :key="group.id"
-      :checked="groupIsSelected(group)"
-      :disabled="disabled"
-      @change="toggleGroup($event, group)"
-    >
-      <KLabeledIcon
-        :label="group.name"
-        icon="group"
-      />
-    </KCheckbox>
+    <!-- Learner groups (unless the facility turned groups off) -->
+    <template v-if="$store.getters.coachFeatures.groups">
+      <KCheckbox
+        v-for="group in groups"
+        :key="group.id"
+        :checked="groupIsSelected(group)"
+        :disabled="disabled"
+        @change="toggleGroup($event, group)"
+      >
+        <KLabeledIcon
+          :label="group.name"
+          icon="group"
+        />
+      </KCheckbox>
+    </template>
 
     <!-- Individual learners -->
     <IndividualLearnerSelector

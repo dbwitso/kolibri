@@ -86,7 +86,15 @@
             to: this.classRoute('GroupsPage'),
           },
         ];
-        return assessmentsEnabled ? tabs : tabs.filter(tab => tab.id !== PlanTabs.ASSESSMENT);
+        // Assessments (a server setting), and quizzes and groups (the
+        // facility's settings), are left out when turned off.
+        const { quizzes, groups } = this.$store.getters.coachFeatures;
+        const hidden = [
+          !assessmentsEnabled && PlanTabs.ASSESSMENT,
+          !quizzes && PlanTabs.QUIZZES,
+          !groups && PlanTabs.GROUPS,
+        ];
+        return tabs.filter(tab => !hidden.includes(tab.id));
       },
     },
     mounted() {

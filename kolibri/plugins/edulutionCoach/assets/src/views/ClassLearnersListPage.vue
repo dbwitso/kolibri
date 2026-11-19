@@ -135,7 +135,7 @@
         return options;
       },
       backlink() {
-        if (this.$route.query.last === 'homepage') {
+        if (this.$route.query.last === 'homepage' || !this.$store.getters.coachFeatures.quizzes) {
           return { name: PageNames.HOME_PAGE, params: { classId: this.$route.params.classId } };
         } else {
           return { name: 'ReportsQuizListPage', params: { classId: this.$route.params.classId } };

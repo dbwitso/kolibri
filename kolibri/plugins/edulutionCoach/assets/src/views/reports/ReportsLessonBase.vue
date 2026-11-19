@@ -196,7 +196,9 @@
           const columns = [
             ...csvFields.name(),
             ...csvFields.learnerProgress(),
-            ...csvFields.list('groups', 'groupsLabel'),
+            ...(this.$store.getters.coachFeatures.groups
+              ? csvFields.list('groups', 'groupsLabel')
+              : []),
           ];
 
           const exporter = new CSVExporter(columns, this.className);

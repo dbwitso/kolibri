@@ -8,6 +8,8 @@ import KolibriApp from 'kolibri_app';
 import routes from './routes';
 import pluginModule from './modules/pluginModule';
 import { classSectionFor } from './routes/utils';
+import { featureForRoute } from './coachFeatures';
+import { PageNames } from './constants';
 
 class CoachToolsModule extends KolibriApp {
   get stateSetters() {
@@ -35,6 +37,17 @@ class CoachToolsModule extends KolibriApp {
       const { isCoach, isAdmin, isSuperuser } = this.store.getters;
       if (!(isCoach || isAdmin || isSuperuser) && to.name !== 'CoachClassListPage') {
         next({ name: 'CoachClassListPage', replace: true });
+        return;
+      }
+      // Quizzes or groups turned off for this facility: their pages (an old
+      // link or bookmark) open the Class home instead.
+      const feature = featureForRoute(to);
+      if (feature && !this.store.getters.coachFeatures[feature]) {
+        next(
+          to.params.classId
+            ? { name: PageNames.HOME_PAGE, params: { classId: to.params.classId }, replace: true }
+            : { name: 'CoachClassListPage', replace: true }
+        );
         return;
       }
       const section = !to.params.classId && classSectionFor(to);

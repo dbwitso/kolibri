@@ -2,6 +2,7 @@ import { ClassroomResource } from 'kolibri.resources';
 import logger from 'kolibri.lib.logging';
 import { pageNameToModuleMap, PageNames } from '../constants';
 import { LessonsPageNames } from '../constants/lessonsConstants';
+import coachFeatures from '../coachFeatures';
 import examCreation from './examCreation';
 import examReport from './examReport';
 import examReportDetail from './examReportDetail';
@@ -51,6 +52,11 @@ export default {
       // If the number of classes is exactly 1, then redirect to its home page,
       // otherwise show the whole class list
       return state.classList.length !== 1;
+    },
+    // { quizzes, groups }: the coach features the class's facility (or,
+    // before a class is open, the coach's own facility) has turned on.
+    coachFeatures(state, getters, rootState) {
+      return coachFeatures(state.classSummary.facility_id || rootState.core.session.facility_id);
     },
     userIsAuthorizedForCoach(state, getters, rootState) {
       if (getters.isSuperuser) {

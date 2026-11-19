@@ -11,6 +11,7 @@
 
       <ReportsControls @export="exportCSV">
         <KCheckbox
+          v-if="$store.getters.coachFeatures.groups"
           :label="coachString('viewByGroupsLabel')"
           :checked="viewByGroups"
           @change="toggleGroupsView"
@@ -121,7 +122,8 @@
     mixins: [commonCoach],
     data() {
       return {
-        viewByGroups: Boolean(this.$route.query.groups),
+        viewByGroups:
+          Boolean(this.$route.query.groups) && this.$store.getters.coachFeatures.groups,
       };
     },
     computed: {
@@ -166,7 +168,8 @@
     },
     watch: {
       $route() {
-        this.viewByGroups = Boolean(this.$route.query.groups);
+        this.viewByGroups =
+          Boolean(this.$route.query.groups) && this.$store.getters.coachFeatures.groups;
       },
     },
     methods: {

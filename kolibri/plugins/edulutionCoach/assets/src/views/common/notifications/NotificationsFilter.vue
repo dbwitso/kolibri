@@ -80,11 +80,15 @@
             value: ContentNodeKinds.LESSON,
             disabled: this.resourceIsDisabled(NotificationObjects.LESSON),
           },
-          {
-            label: this.coreString('quizzesLabel'),
-            value: 'quiz',
-            disabled: this.resourceIsDisabled(NotificationObjects.QUIZ),
-          },
+          ...(this.$store.getters.coachFeatures.quizzes
+            ? [
+                {
+                  label: this.coreString('quizzesLabel'),
+                  value: 'quiz',
+                  disabled: this.resourceIsDisabled(NotificationObjects.QUIZ),
+                },
+              ]
+            : []),
           {
             label: this.coreString('assessmentLabel'),
             value: 'assessment',

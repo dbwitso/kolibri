@@ -88,6 +88,26 @@
           </div>
         </div>
 
+        <!-- Coach features this facility uses. Stored in the facility's
+             extra settings (coach_quizzes, coach_groups; see the
+             edulutionCoach plugin's coach_features.py); on unless unticked. -->
+        <div class="mb">
+          <h2>{{ $tr('coachFeaturesHeading') }}</h2>
+          <p>{{ $tr('coachFeaturesDescription') }}</p>
+          <div class="settings">
+            <KCheckbox
+              :label="$tr('coachCanUseQuizzes')"
+              :checked="coachFeatureOn('coach_quizzes')"
+              @change="toggleCoachFeature('coach_quizzes')"
+            />
+            <KCheckbox
+              :label="$tr('coachCanUseGroups')"
+              :checked="coachFeatureOn('coach_groups')"
+              @change="toggleCoachFeature('coach_groups')"
+            />
+          </div>
+        </div>
+
         <div class="">
           <h2>{{ $tr('deviceManagementPin') }}</h2>
 
@@ -383,6 +403,16 @@
         });
         return newValue;
       },
+      coachFeatureOn(key) {
+        const extra = (this.settings && this.settings.extra_fields) || {};
+        return extra[key] !== false;
+      },
+      toggleCoachFeature(key) {
+        const extra = (this.settings && this.settings.extra_fields) || {};
+        this.$store.commit('facilityConfig/UPDATE_FACILITY_EXTRA_SETTINGS', {
+          extra_fields: { ...extra, [key]: !this.coachFeatureOn(key) },
+        });
+      },
       toggleSetting(settingName) {
         return this.updateSettingValue(settingName, !this.settings[settingName]);
       },
@@ -469,6 +499,25 @@
       learnerCanViewQuizzes: {
         message: 'Allow learners to view Quizzes',
         context: "Option on 'Facility settings' page.",
+      },
+      coachFeaturesHeading: {
+        message: 'Coach features',
+        context: "Heading on the 'Facility settings' page for the features coaches can use.",
+      },
+      coachFeaturesDescription: {
+        message:
+          'Untick a feature this facility does not use. Coaches will no longer see it in Plan, Reports or the class home.',
+        context: "Description under the 'Coach features' heading on the 'Facility settings' page.",
+      },
+      coachCanUseQuizzes: {
+        message: 'Coaches can use quizzes',
+        context:
+          "Option on the 'Facility settings' page. Unticked, coaches no longer see quizzes in Plan, Reports or the class home.",
+      },
+      coachCanUseGroups: {
+        message: 'Coaches can use groups',
+        context:
+          "Option on the 'Facility settings' page. Unticked, coaches no longer see learner groups in Plan, Reports or when choosing who a lesson is for.",
       },
       learnerCanSearchContent: {
         message: 'Allow learners to search content',

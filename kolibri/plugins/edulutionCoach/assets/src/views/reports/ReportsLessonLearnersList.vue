@@ -4,7 +4,7 @@
     <template #headers>
       <th>{{ coachString('nameLabel') }}</th>
       <th>{{ coreString('progressLabel') }}</th>
-      <th v-if="showGroupsColumn">
+      <th v-if="showGroupsColumn && $store.getters.coachFeatures.groups">
         {{ coachString('groupsLabel') }}
       </th>
     </template>
@@ -21,7 +21,7 @@
           <td>
             <StatusSimple :status="tableRow.status" />
           </td>
-          <td v-if="showGroupsColumn">
+          <td v-if="showGroupsColumn && $store.getters.coachFeatures.groups">
             <TruncatedItemList :items="tableRow.groups" />
           </td>
         </tr>

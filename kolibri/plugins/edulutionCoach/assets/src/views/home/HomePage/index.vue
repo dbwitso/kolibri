@@ -19,8 +19,8 @@
           <KGridItem v-if="hasBandTopics">
             <TopicProgressBlock />
           </KGridItem>
-          <!-- Only when the class has quizzes. -->
-          <KGridItem v-if="exams.length > 0">
+          <!-- Only when the class has quizzes, and quizzes are on. -->
+          <KGridItem v-if="exams.length > 0 && $store.getters.coachFeatures.quizzes">
             <QuizzesBlock />
           </KGridItem>
         </KGrid>

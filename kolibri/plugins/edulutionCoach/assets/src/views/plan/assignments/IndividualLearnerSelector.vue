@@ -44,7 +44,7 @@
               <th class="table-header">
                 {{ coreString('usernameLabel') }}
               </th>
-              <th class="table-header">
+              <th v-if="$store.getters.coachFeatures.groups" class="table-header">
                 {{ coachString('groupsLabel') }}
               </th>
             </template>
@@ -64,7 +64,7 @@
                   <td class="table-data">
                     {{ learner.username }}
                   </td>
-                  <td class="table-data">
+                  <td v-if="$store.getters.coachFeatures.groups" class="table-data">
                     {{ groupNamesForLearner(learner) }}
                   </td>
                 </tr>

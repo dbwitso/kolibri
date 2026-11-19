@@ -57,6 +57,9 @@ class CoachAsset(webpack_hooks.WebpackBundleHook):
     def plugin_data(self):
         from kolibri.core.assessment.api_permissions import assessments_disabled
         from kolibri.core.content.models import ContentNode
+        from kolibri.plugins.edulutionCoach.coach_features import (
+            coach_features_by_facility,
+        )
 
         practice_quizzes_exist = ContentNode.objects.filter(
             available=True, options__contains='"modality": "QUIZ"'
@@ -66,6 +69,9 @@ class CoachAsset(webpack_hooks.WebpackBundleHook):
             # False when LSHE_DISABLE_ASSESSMENTS is set: the assessments API
             # then refuses every request, so the pages must not call it.
             "assessments_enabled": not assessments_disabled(),
+            # Quizzes and groups, per facility, as its admin set them on the
+            # facility's Settings page (see coach_features.py).
+            "coach_features": coach_features_by_facility(),
         }
 
 

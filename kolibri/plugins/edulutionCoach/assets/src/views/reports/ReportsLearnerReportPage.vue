@@ -13,7 +13,7 @@
       <ReportsControls :disableExport="true" />
 
       <KGrid>
-        <KGridItem :layout12="{ span: $isPrint ? 12 : 6 }">
+        <KGridItem :layout12="{ span: $isPrint || !$store.getters.coachFeatures.quizzes ? 12 : 6 }">
           <h2>{{ coachString('lessonsAssignedLabel') }}</h2>
           <CoreTable :emptyMessage="coachString('lessonListEmptyState')">
             <template #headers>
@@ -46,7 +46,10 @@
             </template>
           </CoreTable>
         </KGridItem>
-        <KGridItem :layout12="{ span: $isPrint ? 12 : 6 }">
+        <KGridItem
+          v-if="$store.getters.coachFeatures.quizzes"
+          :layout12="{ span: $isPrint ? 12 : 6 }"
+        >
           <h2>{{ coachString('quizzesAssignedLabel') }}</h2>
           <CoreTable
             :class="{ print: $isPrint }"

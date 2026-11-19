@@ -19,7 +19,9 @@
         <CoreTable :emptyMessage="coachString('learnerListEmptyState')">
           <template #headers>
             <th>{{ coachString('nameLabel') }}</th>
-            <th>{{ coachString('groupsLabel') }}</th>
+            <th v-if="$store.getters.coachFeatures.groups">
+              {{ coachString('groupsLabel') }}
+            </th>
             <th>{{ coachString('avgScoreLabel') }}</th>
             <th>{{ coachString('exercisesCompletedLabel') }}</th>
             <th>{{ coachString('resourcesViewedLabel') }}</th>
@@ -41,7 +43,7 @@
                     icon="person"
                   />
                 </td>
-                <td>
+                <td v-if="$store.getters.coachFeatures.groups">
                   <TruncatedItemList :items="tableRow.groups" />
                 </td>
                 <td>
@@ -152,7 +154,9 @@
       exportCSV() {
         const columns = [
           ...csvFields.name(),
-          ...csvFields.list('groups', 'groupsLabel'),
+          ...(this.$store.getters.coachFeatures.groups
+            ? csvFields.list('groups', 'groupsLabel')
+            : []),
           ...csvFields.avgScore(true),
           {
             name: this.coachString('exercisesCompletedLabel'),

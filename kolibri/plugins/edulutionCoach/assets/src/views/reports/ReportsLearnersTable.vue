@@ -13,7 +13,7 @@
       <th v-if="anyTimeSpent">
         {{ coreString('timeSpentLabel') }}
       </th>
-      <th v-if="showGroupsColumn">
+      <th v-if="showGroupsColumn && $store.getters.coachFeatures.groups">
         {{ coachString('groupsLabel') }}
       </th>
       <th v-if="anyLastActivity">
@@ -78,7 +78,7 @@
           <td v-if="anyTimeSpent">
             <TimeDuration :seconds="timeDuration(tableRow)" />
           </td>
-          <td v-if="showGroupsColumn">
+          <td v-if="showGroupsColumn && $store.getters.coachFeatures.groups">
             <TruncatedItemList :items="tableRow.groups" />
           </td>
           <td v-if="anyLastActivity">
