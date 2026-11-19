@@ -7,6 +7,10 @@ function route(...paths) {
   return { matched: paths.map(path => ({ path })) };
 }
 
+function named(name, path) {
+  return { name, matched: [{ path }] };
+}
+
 describe('classSectionFor', () => {
   it('sends a Reports page with no class to the Reports section', () => {
     expect(classSectionFor(route('/:classId?/reports/overview'))).toBe(PageNames.REPORTS_PAGE);
@@ -18,6 +22,18 @@ describe('classSectionFor', () => {
 
   it('sends other class pages to the class home', () => {
     expect(classSectionFor(route('/:classId?/home'))).toBe(PageNames.HOME_PAGE);
+  });
+
+  it('reopens a page that needs only the class, such as Attendance', () => {
+    expect(
+      classSectionFor(named('ReportsAttendanceListPage', '/:classId?/reports/attendance'))
+    ).toBe('ReportsAttendanceListPage');
+  });
+
+  it('sends a page that also needs a lesson to its section', () => {
+    expect(
+      classSectionFor(named('LessonSummaryPage', '/:classId?/plan/lessons/:lessonId'))
+    ).toBe(PageNames.PLAN_PAGE);
   });
 
   it('leaves pages that need no class alone', () => {

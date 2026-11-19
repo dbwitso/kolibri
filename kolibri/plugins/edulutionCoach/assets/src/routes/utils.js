@@ -14,6 +14,12 @@ export function classSectionFor(route) {
   if (!paths.some(path => path.includes(':classId'))) {
     return null;
   }
+  // A page that needs nothing but the class (such as Attendance, which the
+  // coach menu links to) opens itself once a class is chosen.
+  const own = paths[paths.length - 1];
+  if (route.name && (own.match(/:/g) || []).length === 1) {
+    return route.name;
+  }
   if (paths.some(path => path.includes('/reports'))) {
     return PageNames.REPORTS_PAGE;
   }

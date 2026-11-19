@@ -18,4 +18,12 @@ export default {
     name: PageNames.REPORTS_PAGE,
     path: '/:classId?/reports',
   },
+  attendance: {
+    name: 'ReportsAttendanceListPage',
+    path: '/:classId?/reports/attendance',
+  },
+  lessonGuide: {
+    name: 'CoachPrompts',
+    path: '/coach-prompts',
+  },
 };
