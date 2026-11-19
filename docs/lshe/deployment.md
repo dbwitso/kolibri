@@ -74,11 +74,57 @@ such as UFW, so that binding is what keeps them off other interfaces.
    allow plenty of time. On first start, the facility and superuser from
    `.env` are created, with the formal preset.
 8. Open `http://<LSHE_BIND_IP>:8080` from a tablet.
+9. Make Kolibri start on boot: see [Start on boot](#start-on-boot).
 
 [`docker/lshe/README.md`](../../docker/lshe/README.md) covers the MindSpark
 connection and firewall settings. kolibri_helper_scripts' `lshe/README.md`
 covers the scripts, the report timer and the read-only report-collection
 account.
+
+## Start on boot
+
+After a power cut or a reboot, Kolibri starts by itself, with no command.
+The containers' `restart: unless-stopped` is not enough on its own: Kolibri
+listens only on `LSHE_BIND_IP`, and at boot Docker can start before the
+network has that address, so the ports cannot be bound and Docker does not
+retry. A container stopped by hand (`docker compose stop`) also stays stopped
+after a reboot. `lshe-kolibri.service` (in `docker/lshe/`) waits for the
+address (`wait-for-address.sh`, up to two minutes), runs `docker compose up
+-d`, and tries again every minute if that fails.
+
+Install once, as root:
+
+```sh
+systemctl enable docker                    # Docker itself starts on boot
+cd /opt/lshe/kolibri/docker/lshe
+cp lshe-kolibri.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now lshe-kolibri.service
+systemctl status lshe-kolibri.service --no-pager
+```
+
+If the Kolibri checkout is not `/opt/lshe/kolibri`, edit the two paths in
+the copied service file first.
+
+**Check it** with a reboot (`reboot`), then, without starting anything:
+
+```sh
+systemctl status lshe-kolibri.service --no-pager   # active (exited)
+docker compose -f /opt/lshe/kolibri/docker/lshe/docker-compose.yml ps
+curl -s -o /dev/null -w "%{http_code}\n" http://<LSHE_BIND_IP>:8080/   # 302
+```
+
+Kolibri can take a minute or two after boot to answer.
+
+**If it did not start:** `journalctl -u lshe-kolibri.service -b --no-pager`
+shows this boot's attempts. "address … is not on this server" means the
+network (cable, Wi-Fi, or the address in `LSHE_BIND_IP`) is not up; the
+service keeps trying every minute. Anything else: `docker logs --tail 50
+lshe-kolibri`.
+
+To stop Kolibri for maintenance, use `systemctl stop lshe-kolibri.service`
+(the containers stop too); `systemctl start lshe-kolibri.service` starts it
+again. Upgrades still use `docker compose up -d --build` (see below).
 
 ## Provisioning (formal preset)
 
