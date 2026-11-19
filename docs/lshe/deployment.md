@@ -206,7 +206,10 @@ not been done, so treat file URLs as shareable.
 ## Backup and restore
 
 Back up before every upgrade or roster import (`lshe/run_import.sh --apply`
-does this itself), and on a regular schedule:
+does this itself), and every night: kolibri_helper_scripts'
+`lshe/backup_db.sh`, run by its `lshe-backup.timer` at 01:30 Lusaka time,
+dumps the database, checks the dump and keeps 14 days (set-up in that
+repository's `lshe/README.md`, "Nightly database backup"). By hand:
 
 ```sh
 docker exec lshe-db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
