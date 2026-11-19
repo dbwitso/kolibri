@@ -58,11 +58,8 @@ class DefaultThemeHook(theme_hook.ThemeHook):
             "signIn": {
                 "background": background_image,
                 "backgroundImgCredit": "Edulution",
-                "topLogo": {
-                    "src": static("assets/default_theme/edulution-logo.svg"),
-                    "alt": "Edulution",
-                    "style": "padding-left: 64px; padding-right: 64px; margin-bottom: 8px; margin-top: 8px",
-                },
+                # No logo above the sign-in form (the form shows Kolibri's);
+                # Edulution's full logo is in the footer with the partners'.
                 "footerLogo": {
                     "src": static("assets/default_theme/edulution-symbol.png"),
                     "alt": "Edulution",

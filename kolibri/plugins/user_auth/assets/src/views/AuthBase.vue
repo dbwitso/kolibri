@@ -83,28 +83,14 @@
         <div class="footer-cell table-cell" :style="{ backgroundColor: $themeTokens.surface }">
           <!-- The theme's footer logos (partners and Edulution's full logo) -->
           <PartnerFooter class="sign-in-partners" />
+          <!-- Only the partner logos above and the privacy link: no Kolibri
+               version, footer symbol or photo credit. -->
           <div class="small-text">
-            <span class="version-string">
-              {{ versionMsg }}
-            </span>
-            <CoreLogo
-              v-if="themeConfig.signIn.showKolibriFooterLogo"
-              class="footer-logo"
-              :src="themeConfig.signIn.footerLogo && themeConfig.signIn.footerLogo.src"
-              :alt="themeConfig.signIn.footerLogo && themeConfig.signIn.footerLogo.alt"
-            />
-            <span v-else> • </span>
             <KButton
               :text="coreString('usageAndPrivacyLabel')"
               appearance="basic-link"
               @click="privacyModalVisible = true"
             />
-            <template v-if="themeConfig.signIn.backgroundImgCredit">
-              <span> • </span>
-              {{ $tr('photoCreditLabel', {
-                photoCredit: themeConfig.signIn.backgroundImgCredit
-              }) }}
-            </template>
           </div>
         </div>
       </div>
@@ -225,11 +211,6 @@
       oidcProviderFlow() {
         return plugin_data.oidcProviderEnabled && this.nextParam;
       },
-      versionMsg() {
-        // Split the version string at the first occurrence of '.' after the third number
-        const version = __version.split('.').slice(0, 3).join('.');
-        return this.$tr('poweredBy', { version });
-      },
     },
     $trs: {
       oidcGenericExplanation: {
@@ -243,11 +224,6 @@
           "You were sent here from the application '{app_name}'. Kolibri is an e-learning platform, and you can also use your Kolibri account to access '{app_name}'.",
         context:
           'Explanation of Kolibri that a user sees if they are sent to Kolibri from a different application.',
-      },
-      poweredBy: {
-        message: 'Kolibri {version}',
-        context:
-          'Indicates the current version of Kolibri.\n\nFor languages with non-latin scripts, Kolibri should be transcribed phonetically into the target language, similar to a person\'s name. It should not be translated as "hummingbird".',
       },
       poweredByKolibri: {
         message: 'Powered by Kolibri',
@@ -266,10 +242,6 @@
           'To change this, sign in as a super admin and update the Device network access settings',
 
         context: 'Error message description',
-      },
-      photoCreditLabel: {
-        message: ' ',
-        context: 'Gives credit to the photographer of the background image.',
       },
     },
   };
@@ -334,9 +306,6 @@
     font-size: 0.8em;
   }
 
-  .version-string {
-    white-space: nowrap;
-  }
 
   .footer-cell {
     @extend %dropshadow-8dp;
@@ -403,15 +372,6 @@
     font-weight: 100;
   }
 
-  .footer-logo {
-    position: relative;
-    top: -1px;
-    display: inline-block;
-    height: 24px;
-    margin-right: 10px;
-    margin-left: 8px;
-    vertical-align: middle;
-  }
 
   /deep/ .ui-textbox-input {
     &:hover {
