@@ -53,10 +53,13 @@
     border-radius: 8px;
   }
 
+  // The logos scale with the screen width: full size on a laptop, smaller
+  // on a 10-11 inch tablet in landscape (850-1340px wide, by model) so all
+  // of them stay on one line, and on two rows on a phone.
   .logos {
     display: flex;
     flex-wrap: wrap;
-    gap: 24px 40px;
+    gap: 16px clamp(14px, 2.6vw, 40px);
     align-items: center;
     justify-content: center;
     padding: 0;
@@ -64,26 +67,21 @@
     list-style: none;
   }
 
+  // One line from tablet width up.
+  @media (min-width: 700px) {
+    .logos {
+      flex-wrap: nowrap;
+    }
+  }
+
   // One height for all, so a crest is as readable as a wordmark; the width
   // cap keeps wide logos from taking over.
   .logo img {
     display: block;
     width: auto;
-    max-width: 230px;
-    height: 64px;
+    max-width: clamp(110px, 17vw, 230px);
+    height: clamp(34px, 4.8vw, 64px);
     object-fit: contain;
-  }
-
-  // Smaller on phones, so the logos fit on one or two rows.
-  @media (max-width: 600px) {
-    .logos {
-      gap: 16px 24px;
-    }
-
-    .logo img {
-      max-width: 150px;
-      height: 44px;
-    }
   }
 
 </style>
