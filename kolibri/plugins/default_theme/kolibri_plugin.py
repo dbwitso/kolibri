@@ -74,14 +74,18 @@ class DefaultThemeHook(theme_hook.ThemeHook):
                 },
                 "showKolibriFooterLogo": False,
             },
-            # Shown in the footer of every page and of the sign-in page: the
-            # programme's partners (Zambia's Ministry of Education, the O3
-            # programme, Sweden) and Edulution's full logo.
+            # Shown in the sign-in page's footer: the programme's partners
+            # (Zambia's Ministry of Education, UNESCO, the O3 programme,
+            # Sweden) and Edulution's full logo.
             "footer": {
                 "logos": [
                     {
                         "src": static("assets/default_theme/partners/zambia-moe.png"),
                         "alt": "Ministry of Education, Zambia",
+                    },
+                    {
+                        "src": static("assets/default_theme/partners/unesco.png"),
+                        "alt": "UNESCO",
                     },
                     {
                         "src": static(

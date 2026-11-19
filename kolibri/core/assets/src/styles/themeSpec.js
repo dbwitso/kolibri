@@ -188,8 +188,7 @@ export default {
       },
     },
   },
-  // Logos in the footer of every page (AppBarPage) and of the sign-in page,
-  // such as a programme's partners.
+  // Logos in the sign-in page's footer, such as a programme's partners.
   footer: {
     type: Object,
     default: null,

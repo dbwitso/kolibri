@@ -29,7 +29,6 @@
       :style="wrapperStyles"
     >
       <slot></slot>
-      <PartnerFooter />
     </div>
 
     <SideNav
@@ -56,7 +55,6 @@
   import commonCoreStrings from 'kolibri.coreVue.mixins.commonCoreStrings';
   import MeteredConnectionNotificationModal from 'kolibri-common/components/MeteredConnectionNotificationModal';
   import AppBar from '../AppBar';
-  import PartnerFooter from '../PartnerFooter';
   import StorageNotification from '../StorageNotification';
   import useUserSyncStatus from '../../composables/useUserSyncStatus';
 
@@ -65,7 +63,6 @@
     components: {
       AppBar,
       MeteredConnectionNotificationModal,
-      PartnerFooter,
       ScrollingHeader,
       SideNav,
       StorageNotification,

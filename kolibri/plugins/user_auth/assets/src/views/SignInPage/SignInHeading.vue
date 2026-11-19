@@ -30,9 +30,10 @@
 
 <style scoped lang="scss">
 
+  // Room between the logo and the username field.
   .sign-in-text {
     margin-top: 24px;
-    margin-bottom: 16px;
+    margin-bottom: 32px;
     text-align: center;
   }
 

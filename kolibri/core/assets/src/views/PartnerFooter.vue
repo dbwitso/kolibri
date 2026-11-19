@@ -1,8 +1,8 @@
 <template>
 
   <!-- The theme's footer logos (theme "footer.logos", e.g. a programme's
-       partners), at the foot of every page and of the sign-in page. Nothing
-       when the theme lists none. -->
+       partners), at the foot of the sign-in page: shown before signing in,
+       not on the pages after. Nothing when the theme lists none. -->
   <!-- A white strip, so the logos (often on white) never sit in boxes on
        the grey page. -->
   <footer

@@ -76,22 +76,26 @@
             <div>
               <component :is="component" v-for="component in loginOptions" :key="component.name" />
             </div>
+
+            <!-- Privacy link, then the Kolibri version, inside the box -->
+            <div class="box-footer small-text">
+              <KButton
+                :text="coreString('usageAndPrivacyLabel')"
+                appearance="basic-link"
+                @click="privacyModalVisible = true"
+              />
+              <div class="version-string" :style="{ color: $themeTokens.annotation }">
+                {{ versionMsg }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div class="table-row">
         <div class="footer-cell table-cell" :style="{ backgroundColor: $themeTokens.surface }">
-          <!-- The theme's footer logos (partners and Edulution's full logo) -->
+          <!-- Only the theme's footer logos: the partners and Edulution's full
+               logo (the privacy link and version are in the box above). -->
           <PartnerFooter class="sign-in-partners" />
-          <!-- Only the partner logos above and the privacy link: no Kolibri
-               version, footer symbol or photo credit. -->
-          <div class="small-text">
-            <KButton
-              :text="coreString('usageAndPrivacyLabel')"
-              appearance="basic-link"
-              @click="privacyModalVisible = true"
-            />
-          </div>
         </div>
       </div>
     </div>
@@ -211,6 +215,11 @@
       oidcProviderFlow() {
         return plugin_data.oidcProviderEnabled && this.nextParam;
       },
+      versionMsg() {
+        // Split the version string at the first occurrence of '.' after the third number
+        const version = __version.split('.').slice(0, 3).join('.');
+        return this.$tr('poweredBy', { version });
+      },
     },
     $trs: {
       oidcGenericExplanation: {
@@ -224,6 +233,11 @@
           "You were sent here from the application '{app_name}'. Kolibri is an e-learning platform, and you can also use your Kolibri account to access '{app_name}'.",
         context:
           'Explanation of Kolibri that a user sees if they are sent to Kolibri from a different application.',
+      },
+      poweredBy: {
+        message: 'Kolibri {version}',
+        context:
+          'Indicates the current version of Kolibri.\n\nFor languages with non-latin scripts, Kolibri should be transcribed phonetically into the target language, similar to a person\'s name. It should not be translated as "hummingbird".',
       },
       poweredByKolibri: {
         message: 'Powered by Kolibri',
@@ -313,16 +327,22 @@
     padding: 16px;
   }
 
-  // The logos sit above the version line, without the page footer's rule.
+  // The logos fill the footer, without the strip's own border.
   .sign-in-partners {
-    padding: 0 0 8px;
+    padding: 0;
     margin-top: 0;
     border: 0;
     border-radius: 0;
   }
 
-  .footer-cell .small-text {
-    margin-top: 8px;
+  .box-footer {
+    margin-top: 24px;
+    text-align: center;
+  }
+
+  .version-string {
+    margin-top: 4px;
+    white-space: nowrap;
   }
 
   .suggestions-wrapper {
