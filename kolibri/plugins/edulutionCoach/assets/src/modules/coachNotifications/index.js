@@ -3,11 +3,21 @@ import sortBy from 'lodash/sortBy';
 import notificationsResource from '../../apiResources/notifications';
 import { allNotifications, summarizedNotifications } from './getters';
 
+// Seconds between checks for new notifications, per coach polling at the
+// same time (the server reports how many), capped at POLL_MAX_FACTOR. One
+// coach checks every 10 seconds, six or more every minute. Each check also
+// writes a row on the server, so this keeps a centre server with many
+// coaches and tablets from being polled every two seconds.
+const POLL_BASE_MS = 10000;
+const POLL_MAX_FACTOR = 6;
+
 export default {
   namespaced: true,
   state: {
     currentClassroomId: null,
     notifications: [],
+    // The pending check's timer, so there is only ever one polling loop.
+    poller: null,
   },
   mutations: {
     SET_NOTIFICATIONS(state, notifications) {
@@ -21,6 +31,12 @@ export default {
     },
     SET_CURRENT_CLASSROOM_ID(state, classroomId) {
       state.currentClassroomId = classroomId;
+    },
+    SET_POLLER(state, poller) {
+      if (state.poller) {
+        clearTimeout(state.poller);
+      }
+      state.poller = poller;
     },
   },
   getters: {
@@ -36,15 +52,16 @@ export default {
   },
   actions: {
     stopPolling(store) {
+      store.commit('SET_POLLER', null);
       store.commit('SET_CURRENT_CLASSROOM_ID', '');
       // Need to clear out 403 error in store to prevent auth message from showing
       // in other places.
       store.commit('CORE_SET_ERROR', '', { root: true });
     },
     fetchNotificationsForClass(store, classroomId) {
-      if (!store.state.currentClassroomId) {
-        store.commit('SET_CURRENT_CLASSROOM_ID', classroomId);
-      }
+      // Always the class being opened: switching straight from one class to
+      // another used to keep polling the first.
+      store.commit('SET_CURRENT_CLASSROOM_ID', classroomId);
       return notificationsResource
         .fetchCollection({
           getParams: {
@@ -53,14 +70,10 @@ export default {
         })
         .then(data => {
           store.commit('SET_NOTIFICATIONS', data.results);
-          if (!store.state.poller) {
-            store.dispatch('startingPolling', { coachesPolling: data.coaches_polling });
-          }
+          store.dispatch('startingPolling', { coachesPolling: data.coaches_polling });
         })
         .catch(() => {
-          if (!store.state.poller) {
-            store.dispatch('startingPolling', { coachesPolling: 0 });
-          }
+          store.dispatch('startingPolling', { coachesPolling: 0 });
         });
     },
     updateNotificationsForClass(store, { classroomId, after }) {
@@ -117,13 +130,27 @@ export default {
         });
     },
     startingPolling(store, { coachesPolling }) {
-      const timeout = 2000 * Math.min(Math.max(coachesPolling, 1), 10);
-      setTimeout(() => {
-        store.dispatch('updateNotificationsForClass', {
-          classroomId: store.state.currentClassroomId,
-          after: store.getters.maxNotificationIndex,
-        });
-      }, timeout);
+      const timeout = POLL_BASE_MS * Math.min(Math.max(coachesPolling, 1), POLL_MAX_FACTOR);
+      // SET_POLLER cancels any pending check, so only one loop runs.
+      store.commit(
+        'SET_POLLER',
+        setTimeout(() => {
+          store.commit('SET_POLLER', null);
+          if (!store.state.currentClassroomId) {
+            return;
+          }
+          // Don't ask the server while the coach page is in a background
+          // tab or the tablet screen is off; check again later.
+          if (typeof document !== 'undefined' && document.hidden) {
+            store.dispatch('startingPolling', { coachesPolling });
+            return;
+          }
+          store.dispatch('updateNotificationsForClass', {
+            classroomId: store.state.currentClassroomId,
+            after: store.getters.maxNotificationIndex,
+          });
+        }, timeout)
+      );
     },
   },
 };
