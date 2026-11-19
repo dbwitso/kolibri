@@ -7,6 +7,7 @@ import PageRoot from 'kolibri.coreVue.components.PageRoot';
 import KolibriApp from 'kolibri_app';
 import routes from './routes';
 import pluginModule from './modules/pluginModule';
+import { classSectionFor } from './routes/utils';
 
 class CoachToolsModule extends KolibriApp {
   get stateSetters() {
@@ -34,6 +35,17 @@ class CoachToolsModule extends KolibriApp {
       const { isCoach, isAdmin, isSuperuser } = this.store.getters;
       if (!(isCoach || isAdmin || isSuperuser) && to.name !== 'CoachClassListPage') {
         next({ name: 'CoachClassListPage', replace: true });
+        return;
+      }
+      const section = !to.params.classId && classSectionFor(to);
+      if (section) {
+        next({
+          name: this.store.getters.userIsMultiFacilityAdmin
+            ? 'AllFacilitiesPage'
+            : 'CoachClassListPage',
+          params: { subtopicName: section },
+          replace: true,
+        });
         return;
       }
       this.store.dispatch('loading');
