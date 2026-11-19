@@ -31,7 +31,11 @@ class EDULUTION_COACH(KolibriPluginBase):
 
 @register_hook
 class CoachRedirect(RoleBasedRedirectHook):
-    roles = (EDULUTION_COACH,)
+    # Coaches open the coach pages after signing in: their class's Class
+    # home, or the class list when they coach several classes. (This said
+    # EDULUTION_COACH, the plugin class, which matches no role, so coaches
+    # were sent to the learner pages.)
+    roles = (COACH,)
     require_full_facility = True
     require_no_on_my_own_facility = True
 

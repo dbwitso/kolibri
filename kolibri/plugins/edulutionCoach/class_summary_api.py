@@ -594,6 +594,69 @@ def get_learner_resource_locks(classroom):
     )
 
 
+def get_week_attendance(learner_ids, now=None):
+    """
+    This week's attendance (Monday to Sunday, in the server's time zone)
+    for the coach's Class home:
+
+        {
+            "week_start": "YYYY-MM-DD",
+            "days": [{"date": "YYYY-MM-DD", "learners": int or None}, ...],
+                # seven days; None for days still to come
+            "active_learners": int,         # with a session this week
+            "avg_seconds_logged_in": int,   # per active learner
+            "avg_seconds_watching": int,    # video time, per active learner
+        }
+
+    A learner counts on each day they had a session (UserSessionLog).
+    Logged-in time is each session's last interaction minus its start, as
+    the attendance report computes it; watching time is the time spent in
+    video sessions (ContentSessionLog) that started this week.
+    """
+    now = timezone.localtime(now or timezone.now())
+    week_start = (now - timedelta(days=now.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    present = {}
+    logged_in = {}
+    for user_id, start, last in logger_models.UserSessionLog.objects.filter(
+        user_id__in=learner_ids,
+        last_interaction_timestamp__gte=week_start,
+    ).values_list("user_id", "start_timestamp", "last_interaction_timestamp"):
+        start = max(start, week_start)
+        for day in {
+            timezone.localtime(start).date(),
+            timezone.localtime(last).date(),
+        }:
+            present.setdefault(day, set()).add(user_id)
+        logged_in[user_id] = logged_in.get(user_id, 0) + (last - start).total_seconds()
+    watching = (
+        logger_models.ContentSessionLog.objects.filter(
+            user_id__in=learner_ids,
+            kind=content_kinds.VIDEO,
+            start_timestamp__gte=week_start,
+        ).aggregate(total=Sum("time_spent"))["total"]
+        or 0
+    )
+    active = len(logged_in)
+    days = []
+    for offset in range(7):
+        day = (week_start + timedelta(days=offset)).date()
+        days.append(
+            {
+                "date": day.isoformat(),
+                "learners": len(present.get(day, ())) if day <= now.date() else None,
+            }
+        )
+    return {
+        "week_start": week_start.date().isoformat(),
+        "days": days,
+        "active_learners": active,
+        "avg_seconds_logged_in": int(sum(logged_in.values()) / active) if active else 0,
+        "avg_seconds_watching": int(watching / active) if active else 0,
+    }
+
+
 def get_reached_learner_ids(learner_ids):
     """
     The learners who have fully completed at least one item, anywhere: the
@@ -908,6 +971,9 @@ class ClassSummaryViewSet(viewsets.ViewSet):
             "session_time_by_learner": session_time_by_learner,
             "learner_resource_locks": learner_resource_locks,
             "reached_learner_ids": get_reached_learner_ids(
+                [learner["id"] for learner in learners_data]
+            ),
+            "week_attendance": get_week_attendance(
                 [learner["id"] for learner in learners_data]
             ),
             "band_topics": get_band_topic_progress(

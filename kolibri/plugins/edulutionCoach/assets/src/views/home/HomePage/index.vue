@@ -8,6 +8,9 @@
       <KGridItem>
         <OverviewBlock />
       </KGridItem>
+      <KGridItem>
+        <TodayBlock />
+      </KGridItem>
       <KGridItem :layout12="{ span: 6 }">
         <KGrid gutter="16">
           <KGridItem>
@@ -16,7 +19,8 @@
           <KGridItem v-if="hasBandTopics">
             <TopicProgressBlock />
           </KGridItem>
-          <KGridItem>
+          <!-- Only when the class has quizzes. -->
+          <KGridItem v-if="exams.length > 0">
             <QuizzesBlock />
           </KGridItem>
         </KGrid>
@@ -24,7 +28,7 @@
       <KGridItem :layout12="{ span: 6 }">
         <KGrid gutter="16">
           <KGridItem>
-            <AttendanceBlock />
+            <ThisWeekBlock />
           </KGridItem>
           <KGridItem>
             <NotReachedBlock />
@@ -53,7 +57,8 @@
   import ActivityBlock from './ActivityBlock';
   import LessonsBlock from './LessonsBlock';
   import QuizzesBlock from './QuizzesBlock';
-  import AttendanceBlock from './AttendanceBlock';
+  import ThisWeekBlock from './ThisWeekBlock';
+  import TodayBlock from './TodayBlock';
   import AssessmentBlock from './AssessmentBlock.vue';
   import NotReachedBlock from './NotReachedBlock';
   import TopicProgressBlock from './TopicProgressBlock';
@@ -66,7 +71,8 @@
       ActivityBlock,
       LessonsBlock,
       QuizzesBlock,
-      AttendanceBlock,
+      ThisWeekBlock,
+      TodayBlock,
       AssessmentBlock,
       NotReachedBlock,
       TopicProgressBlock,
@@ -84,11 +90,3 @@
 
 </script>
 
-
-<style lang="scss" scoped>
-
-  .new-coach-block {
-    min-width: 0;
-  }
-
-</style>

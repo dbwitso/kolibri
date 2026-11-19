@@ -3,9 +3,11 @@ The coach's Class home shows which learners are not yet reached (no item
 finished) and how far the class has got in each topic of its grade band.
 Both come from the class summary. All data here is invented.
 """
+import datetime
 import uuid
 
 from django.test import override_settings
+from django.utils import timezone
 from django.urls import reverse
 from le_utils.constants import content_kinds
 from rest_framework.test import APITestCase
@@ -14,7 +16,10 @@ from kolibri.core.auth.models import FacilityUser
 from kolibri.core.content.models import ChannelMetadata
 from kolibri.core.content.models import ContentNode
 from kolibri.core.lessons.models import Lesson
+from kolibri.core.logger.models import ContentSessionLog
 from kolibri.core.logger.models import ContentSummaryLog
+from kolibri.core.logger.models import UserSessionLog
+from kolibri.plugins.edulutionCoach.class_summary_api import get_week_attendance
 from kolibri.plugins.edulution.models import GradeBandChannel
 from kolibri.plugins.edulution.test.test_grade_bands import BandFixture
 from kolibri.plugins.edulution.test.test_grade_bands import PASSWORD
@@ -160,3 +165,82 @@ class ClassHomeSummaryTestCase(BandFixture, APITestCase):
     @override_settings(LSHE_GRADE_BANDS="off")
     def test_no_band_rule_no_topics(self):
         self.assertEqual(self.summary(self.lower)["band_topics"], [])
+
+
+@override_settings(LSHE_GRADE_BANDS="on")
+class WeekAttendanceTestCase(BandFixture, APITestCase):
+    """The Class home's "This week": who came each day and for how long."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.build()
+        cls.learner2 = FacilityUser.objects.create(
+            username="grade4.learner2", facility=cls.facility
+        )
+        cls.lower.add_member(cls.learner2)
+
+    def at(self, day, hour, minute=0):
+        # 16 to 22 November 2026 is a Monday-to-Sunday week.
+        return timezone.make_aware(datetime.datetime(2026, 11, day, hour, minute))
+
+    def session(self, user, start, end):
+        log = UserSessionLog.objects.create(user=user)
+        UserSessionLog.objects.filter(pk=log.pk).update(
+            start_timestamp=start, last_interaction_timestamp=end
+        )
+
+    def test_this_week(self):
+        self.session(self.learner, self.at(16, 9), self.at(16, 9, 30))
+        self.session(self.learner, self.at(18, 10), self.at(18, 10, 20))
+        self.session(self.learner2, self.at(18, 10), self.at(18, 10, 10))
+        # Last week: not counted.
+        self.session(self.learner2, self.at(13, 9), self.at(13, 10))
+        ContentSessionLog.objects.create(
+            user=self.learner,
+            content_id=uuid.uuid4().hex,
+            channel_id=uuid.uuid4().hex,
+            kind=content_kinds.VIDEO,
+            start_timestamp=self.at(18, 10),
+            end_timestamp=self.at(18, 10, 10),
+            time_spent=600,
+            progress=0.5,
+        )
+        week = get_week_attendance(
+            [self.learner.id, self.learner2.id], now=self.at(18, 12)
+        )
+        self.assertEqual(week["week_start"], "2026-11-16")
+        self.assertEqual(
+            [d["learners"] for d in week["days"]], [1, 0, 2, None, None, None, None]
+        )
+        self.assertEqual(week["active_learners"], 2)
+        # (30 + 20 + 10 minutes) / 2 learners; 600 s of video / 2 learners
+        self.assertEqual(week["avg_seconds_logged_in"], 1800)
+        self.assertEqual(week["avg_seconds_watching"], 300)
+
+    def test_nobody_yet(self):
+        week = get_week_attendance([self.learner.id], now=self.at(16, 8))
+        self.assertEqual(week["active_learners"], 0)
+        self.assertEqual(week["avg_seconds_logged_in"], 0)
+        self.assertEqual(week["days"][0]["learners"], 0)
+
+
+class CoachLandingTestCase(BandFixture, APITestCase):
+    """A coach lands on the coach pages after signing in, not the learner's."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.build()
+
+    def landing(self, user):
+        self.client.login(
+            username=user.username, password=PASSWORD, facility=self.facility
+        )
+        return self.client.get(reverse("kolibri:core:redirect_user"))["Location"]
+
+    def test_coach_lands_on_coach_pages(self):
+        self.assertIn("/edulutioncoach/", self.landing(self.coach))
+
+    def test_learner_lands_on_learner_pages(self):
+        self.learner.set_password(PASSWORD)
+        self.learner.save()
+        self.assertNotIn("coach", self.landing(self.learner))

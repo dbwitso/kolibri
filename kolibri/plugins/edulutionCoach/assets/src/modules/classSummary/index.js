@@ -143,6 +143,14 @@ function defaultState() {
      * the class has no band. See class_summary_api.get_band_topic_progress.
      */
     bandTopics: [],
+    /*
+     * weekAttendance := {
+     *   week_start, days: [{ date, learners }], active_learners,
+     *   avg_seconds_logged_in, avg_seconds_watching
+     * } or null
+     * See class_summary_api.get_week_attendance.
+     */
+    weekAttendance: null,
     // date range (ISO date strings, e.g. '2026-09-01') used to scope
     // watchTimeMap/sessionTimeMap; null means unbounded
     dateRangeStart: null,
@@ -545,6 +553,7 @@ export default {
         learnerOverviewList: summary.learner_overview || [],
         reachedLearnerIds: summary.reached_learner_ids || [],
         bandTopics: summary.band_topics || [],
+        weekAttendance: summary.week_attendance || null,
         assessmentGroupMap,
       });
     },
