@@ -178,6 +178,7 @@
   import useContentLink from '../composables/useContentLink';
   import useCoreLearn from '../composables/useCoreLearn';
   import useContentNodeProgress from '../composables/useContentNodeProgress';
+  import { fetchChildren } from '../utils/nextContent';
   import useDevices, { setCurrentDevice, StudioNotAllowedError } from '../composables/useDevices';
   import useLearnerResources from '../composables/useLearnerResources';
   import useDownloadRequests from '../composables/useDownloadRequests';
@@ -228,7 +229,6 @@
       const { canDownloadExternally } = useCoreLearn();
       const {
         fetchContentNodeProgress,
-        fetchContentNodeTreeProgress,
         contentNodeProgressMap,
       } = useContentNodeProgress();
       const { channelsMap, fetchChannels } = useChannels();
@@ -316,7 +316,6 @@
         canDownloadExternally,
         contentNodeProgressMap,
         fetchContentNodeProgress,
-        fetchContentNodeTreeProgress,
         fetchLesson,
         back,
         genExternalBackURL,
@@ -549,35 +548,33 @@
         if (!this.content) {
           return Promise.resolve();
         }
-        const fetchGrandparent = this.content.ancestors.length > 1;
-        const treeParams = {
-          id: fetchGrandparent ? this.content.ancestors.slice(-2)[0].id : this.content.parent,
-          params: {
-            include_coach_content: this.isAdmin || this.isCoach || this.isSuperuser,
-            depth: fetchGrandparent ? 2 : 1,
-            baseurl: this.baseurl,
-          },
+        // Every item of the folder, not the content tree's first 12 (see
+        // utils/nextContent.js), so the list and the next folder are right
+        // in folders with more than 12 items.
+        const options = {
+          includeCoachContent: this.isAdmin || this.isCoach || this.isSuperuser,
+          baseurl: this.baseurl,
         };
-        // Fetch and map the progress for the nodes if logged in
-        if (this.isUserLoggedIn && !this.baseurl) {
-          this.fetchContentNodeTreeProgress(treeParams);
-        }
-        return ContentNodeResource.fetchTree(treeParams).then(ancestor => {
-          let parent;
+        const grandparentId =
+          this.content.ancestors.length > 1 ? this.content.ancestors.slice(-2)[0].id : null;
+        return Promise.all([
+          fetchChildren(this.content.parent, options),
+          grandparentId ? fetchChildren(grandparentId, options) : Promise.resolve(null),
+        ]).then(([siblings, folders]) => {
+          // Progress for the listed items, if logged in
+          if (this.isUserLoggedIn && !this.baseurl && siblings.length) {
+            this.fetchContentNodeProgress({ ids: siblings.map(node => node.id) });
+          }
           let nextContents;
-          if (fetchGrandparent) {
-            const parentIndex = ancestor.children.results.findIndex(
-              c => c.id === this.content.parent
-            );
-            parent = ancestor.children.results[parentIndex];
-            nextContents = ancestor.children.results.slice(parentIndex + 1);
+          if (folders) {
+            const parentIndex = folders.findIndex(c => c.id === this.content.parent);
+            nextContents = parentIndex === -1 ? [] : folders.slice(parentIndex + 1);
           } else {
-            parent = ancestor;
-            const contentIndex = ancestor.children.results.findIndex(c => c.id === this.content.id);
-            nextContents = ancestor.children.results.slice(contentIndex + 1);
+            const contentIndex = siblings.findIndex(c => c.id === this.content.id);
+            nextContents = contentIndex === -1 ? [] : siblings.slice(contentIndex + 1);
           }
           this.nextContent = nextContents.find(c => c.kind === ContentNodeKinds.TOPIC) || null;
-          this.viewResourcesContents = parent.children.results.filter(n => n.id);
+          this.viewResourcesContents = siblings.filter(n => n.id);
         });
       },
       navigateBack() {

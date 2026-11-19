@@ -73,8 +73,10 @@
                 ref="nextContentNodeSection"
                 icon="forwardRounded"
                 :class="sectionClass"
-                :title="$tr('moveOnTitle')"
-                :description="$tr('moveOnDescription')"
+                :title="nextTopic ? $tr('topicDoneTitle') : $tr('moveOnTitle')"
+                :description="nextTopic
+                  ? $tr('nextTopicDescription', { topic: nextTopic.title })
+                  : $tr('moveOnDescription')"
                 :buttonLabel="$tr('moveOnButtonLabel')"
                 :buttonRoute="nextContentNodeRoute"
               >
@@ -156,6 +158,7 @@
   import useDeviceSettings from '../../composables/useDeviceSettings';
   import useLearnerResources from '../../composables/useLearnerResources';
   import useContentLink from '../../composables/useContentLink';
+  import { findNextContent } from '../../utils/nextContent';
   import commonLearnStrings from '../commonLearnStrings';
   import CompletionModalSection from './CompletionModalSection';
   import ResourceItem from './ResourceItem';
@@ -241,6 +244,9 @@
          * to the next resource
          */
         nextContentNode: null,
+        // The folder the next resource is in, when it is a new one (the
+        // learner finished the last resource of a topic).
+        nextTopic: null,
         loading: true,
       };
     },
@@ -326,7 +332,9 @@
       const promises = [];
       if (this.lessonId) {
         promises.push(this.loadNextLessonContent());
-      } else if (this.canAccessUnassignedContent) {
+      } else {
+        // Restricted learners too: the content API only returns what they
+        // may see, so the next resource is always one they can open.
         promises.push(this.loadNextContent());
       }
       if (this.canAccessUnassignedContent) {
@@ -366,29 +374,15 @@
         this.$el.querySelector('.close-button').focus();
       },
       loadNextContent() {
-        const fetchGrandparent = this.contentNode.ancestors.length > 1;
-        const treeParams = {
-          id: fetchGrandparent
-            ? this.contentNode.ancestors.slice(-2)[0].id
-            : this.contentNode.parent,
-          params: {
-            include_coach_content:
-              this.$store.getters.isAdmin ||
-              this.$store.getters.isCoach ||
-              this.$store.getters.isSuperuser,
-            depth: fetchGrandparent ? 2 : 1,
-            baseurl: this.baseurl,
-          },
-        };
-        return ContentNodeResource.fetchTree(treeParams).then(ancestor => {
-          let parent;
-          if (fetchGrandparent) {
-            parent = ancestor.children.results.find(c => c.id === this.contentNode.parent);
-          } else {
-            parent = ancestor;
-          }
-          const contentIndex = parent.children.results.findIndex(c => c.id === this.contentNode.id);
-          this.nextContentNode = parent.children.results.slice(contentIndex + 1)[0] || null;
+        return findNextContent(this.contentNode, {
+          includeCoachContent:
+            this.$store.getters.isAdmin ||
+            this.$store.getters.isCoach ||
+            this.$store.getters.isSuperuser,
+          baseurl: this.baseurl,
+        }).then(next => {
+          this.nextContentNode = next ? next.node : null;
+          this.nextTopic = next ? next.topic : null;
         });
       },
       loadRecommendedContent() {
@@ -473,6 +467,16 @@
       moveOnDescription: {
         message: 'Move on to the next resource in the folder',
         context: 'Message to the user after completing a resource in a folder.',
+      },
+      topicDoneTitle: {
+        message: 'You finished this topic',
+        context:
+          'Title in the completion window when the learner finished the last resource of a topic and the next resource is in the following topic.',
+      },
+      nextTopicDescription: {
+        message: 'Go on to the next topic: {topic}',
+        context:
+          "Description in the completion window after the last resource of a topic. {topic} is the next topic's title.",
       },
       moveOnButtonLabel: {
         message: 'Move on',
