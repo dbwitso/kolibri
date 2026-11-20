@@ -8,6 +8,7 @@ import KolibriApp from 'kolibri_app';
 import routes from './routes';
 import pluginModule from './modules/pluginModule';
 import { classSectionFor } from './routes/utils';
+import fillClassId from './routes/fillClassId';
 import { featureForRoute } from './coachFeatures';
 import { PageNames } from './constants';
 
@@ -25,6 +26,21 @@ class CoachToolsModule extends KolibriApp {
     return pluginModule;
   }
   ready() {
+    // Links built without the class (getRoute('SELECTION_ROOT'), ...) get the
+    // class being viewed (see routes/fillClassId.js). getRoute is created
+    // when the routes are set up, so wrap it there, before any page renders.
+    const initRoutes = router.initRoutes.bind(router);
+    router.initRoutes = routes => {
+      const vueRouter = initRoutes(routes);
+      const wrapped = fillClassId(
+        router.getRoute,
+        name => router.getRouteDefinition(name),
+        () => vueRouter.currentRoute.params.classId || this.store.state.classSummary.id
+      );
+      router.getRoute = wrapped;
+      vueRouter.getRoute = wrapped;
+      return vueRouter;
+    };
     const { isLearnerOnlyImport } = useUser();
     router.beforeEach((to, from, next) => {
       if (get(isLearnerOnlyImport)) {
@@ -51,6 +67,20 @@ class CoachToolsModule extends KolibriApp {
         return;
       }
       const section = !to.params.classId && classSectionFor(to);
+      // A link from inside a class that leaves the class out (e.g. a lesson's
+      // Options > Manage resources or Edit details: Vue Router never fills in
+      // the optional :classId from the current page) stays in that class.
+      const currentClass = from.params.classId || this.store.state.classSummary.id;
+      if (section && currentClass && to.name) {
+        next({
+          name: to.name,
+          params: { ...to.params, classId: currentClass },
+          query: to.query,
+          replace: true,
+        });
+        return;
+      }
+      // No class at all yet (e.g. Reports from the menu): choose one first.
       if (section) {
         next({
           name: this.store.getters.userIsMultiFacilityAdmin
