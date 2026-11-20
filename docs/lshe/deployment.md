@@ -145,33 +145,31 @@ The superuser is for installers and support only, not for teachers.
 
 ## Channels
 
-LSHE channels and the teacher channels are imported from disk, or from a
-distribution server on the network. Note the channel IDs; you need them for
-bands and settings.
-
-List the channel IDs in `lshe/channels.conf` (copy
-`channels.conf.example`), one per line. Then, from disk (channel packs
-copied to `/srv/lshe-content` on the host):
+LSHE channels (and any teacher channels) travel as **channel packs**: a
+folder with `content/databases`, `content/storage` and a `channels.conf`
+listing the channel IDs, names and bands. The helper scripts are in
+`/opt/lshe/kolibri_helper_scripts/lshe`:
 
 ```sh
-cd /opt/lshe/kolibri_helper_scripts/lshe
-sudo ./import_channels.sh --file channels.conf
+./get_content.sh --find                                   # packs on a plugged-in USB drive
+./get_content.sh --from /media/<drive>/<pack> --import    # from a USB drive
+./get_content.sh --from-ssh root@<server>:/srv/lshe-export/<pack> --import   # from another machine
+./export_channels.sh --all --to /media/<drive>            # make a pack of this server's channels
+./run_script.sh content_status.py --files                 # what the server has
 ```
 
-or from a peer server on the network:
+`get_content.sh` copies the pack into `/srv/lshe-content` (resuming if
+interrupted), checks every file against its checksum, and with `--import`
+runs `import_channels.sh` (Kolibri's `importchannel` and `importcontent`, in
+the container). Re-running is safe. Logs: `/var/log/lshe/content.log` and
+`/var/log/lshe/channels.log`. The packs for a first install are built with
+kolibri_helper_scripts' `lshe/content/build_offline_channels.sh`.
 
-```sh
-sudo ./import_channels.sh --network http://<peer>:8080 --file channels.conf
-```
-
-Each channel is imported, then all its content (Kolibri's `importchannel`
-and `importcontent`, run in the container). Re-running is safe. The log is
-in `/var/log/lshe/channels.log`.
-
-A centre server can't act as that peer. LSHE servers switch off Kolibri's
-public content API (see "Content lockdown" below), so imports from one
-centre server to another fail. Use disk packs, or a distribution server
-that isn't running in LSHE mode.
+**Between two centre servers, use a pack (USB, or `--from-ssh`), not
+`import_channels.sh --network`.** LSHE servers switch off Kolibri's public
+content API (see "Content lockdown" below), so one centre server cannot
+import from another over the network. `--network` works only from a
+distribution server that isn't running in LSHE mode.
 
 Put the teacher channels' IDs in `LSHE_TEACHER_CHANNEL_IDS` in `.env`, comma
 separated, and restart (`docker compose up -d`). Those channels are then

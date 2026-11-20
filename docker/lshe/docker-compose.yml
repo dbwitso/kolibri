@@ -80,6 +80,9 @@ services:
       - /srv/lshe-reports:/srv/lshe-reports
       # Channel packs for importchannel/importcontent disk (import_channels.sh).
       - ${LSHE_CONTENT_DIR:-/srv/lshe-content}:/srv/lshe-content:ro
+      # Channel packs made from this server's channels (export_channels.sh),
+      # to copy to a USB disk or another server.
+      - ${LSHE_EXPORT_DIR:-/srv/lshe-export}:/srv/lshe-export
       # kolibri_helper_scripts (roster import, grade bands, monthly report).
       # Its lshe/*.sh scripts run on the host and call lshe/*.py in here.
       - ${LSHE_HELPER_SCRIPTS_DIR:-/opt/lshe/kolibri_helper_scripts}:/opt/kolibri_helper_scripts:ro

@@ -7,6 +7,8 @@ any capable provider taking over or replicating the deployment.
 - [deployment.md](deployment.md): hardware, network, installation,
   provisioning, channels, grade bands, teachers, backup, restore and
   rollback, known limitations
+- [where-is-what.md](where-is-what.md): what runs, where its files and
+  logs are, and where to look when something is wrong (troubleshooting).
 - [roster-import.md](roster-import.md): importing learners and classes from
   MindSpark
 - [reporting.md](reporting.md): monthly metrics, schedule, collection and
